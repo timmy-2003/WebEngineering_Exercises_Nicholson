@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Wildlife Website - Buggy Starter</title>
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans+Condensed:300|Sonsie+One" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+      body { font-family: Arial, sans-serif; }
+      .highlight { background-color: yellow; color: black; }
+      .comment-wrapper { display: block; } 
+    </style>
+  </head>
+  <body>
+
+    <!--
+      BEGIN:
+        Beautiful HTML markup
+    -->
+
+    <div class="header">
+      <font size="7">Welcome to our wildlife website</font>
+    </div>
+
+    <div class="nav">
+      <ul>
+        <li><a href="#">Home</a></li>
+        <li><a href="#">Our team</a></li>
+        <li><a href="#">Projects</a></li>
+        <li><a href="#">Blog</a></li>
+      </ul>
+
+      <form class="search">
+        <input type="search" name="q" placeholder="Search query">
+        <input type="submit" value="Go!">
+      </form>
+    </div>
+
+    <main>
+      <article>
+        <font size="6">The trouble with Bears</font>
+        <br><br>
+        By Evan Wild
+        <br><br>
+        Tall, lumbering, angry, dangerous. The real live bears of this world are proud, independent creatures, self-serving and always on the hunt for food.
+        <br><br>
+        <font size="5">Types of bear</font>
+        <br><br>
+        <table>
+          <thead>
+            <tr>
+              <td>Bear Type</td>
+              <td>Coat</td>
+              <td>Adult size</td>
+              <td>Habitat</td>
+              <td>Lifespan</td>
+              <td>Diet</td>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Wild</td>
+              <td>Brown or black</td>
+              <td>1.4 to 2.8 meters</td>
+              <td>Woods and forests</td>
+              <td>25 to 28 years</td>
+              <td>Fish, meat, plants</td>
+            </tr>
+            <tr>
+              <td>Urban</td>
+              <td>North Face</td>
+              <td>18 to 22</td>
+              <td>Condos and coffee shops</td>
+              <td>20 to 32 years</td>
+              <td>Starbucks, sushi</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <font size="5">Habitats and Eating habits</font>
+        <br><br>
+        Wild bears eat a variety of meat, fish, fruit, nuts, and other natually growing ingredients...
+        <br><br>
+        <img src="media/wild-bear.jpg" alt="Wild bear in forest">
+        <br><br>
+        Urban (gentrified) bears on the other hand have largely abandoned the old ways...
+        <br><br>
+        <img src="media/urban-bear.jpg" alt="Urban bear near buildings">
+        <br><br>
+
+        <font size="5">Mating rituals</font>
+        <br><br>
+        Bears are romantic creatures by nature...
+        <br><br>
+        <audio controls>
+          <source src="media/bear.mp3" type="audio/mp3">
+          <source src="media/bear.ogg" type="audio/ogg">
+          <p>It looks like your browser doesn't support HTML5 audio players.</p>
+        </audio>
+
+        <aside>
+          <font size="5">About the author</font>
+          <br><br>
+          Evan Wild is an unemployed plumber from Doncaster...
+        </aside>
+
+        <section class="comments">
+          <div class="show-hide">Show comment</div> 
+
+          <div class="comment-wrapper">
+            <font size="6">Add comment</font>
+            <form class="comment-form">
+              <div class="flex-pair">
+                Your name:
+                <input type="text" name="name" id="name" placeholder="Enter your name">
+              </div>
+              <div class="flex-pair">
+                Your comment:
+                <input type="text" name="comment" id="comment" placeholder="Enter your comment">
+              </div>
+              <div>
+                <input type="submit" value="Submit comment">
+              </div>
+            </form>
+
+            <font size="6">Comments</font>
+            <ul class="comment-container">
+              <li>
+                <p>Bob Fossil</p>
+                <p>Oh I am so glad you taught me all about the big brown angry guys...</p>
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        <section class="more_bears">
+          <font size="5">More Bears</font>
+        </section>
+      </article>
+
+      <div class="secondary">
+        <font size="6">Related</font>
+        <ul>
+          <li><a href="#">The trouble with Bees</a></li>
+          <li><a href="#">The trouble with Otters</a></li>
+          <li><a href="#">The trouble with Penguins</a></li>
+          <li><a href="#">The trouble with Octopi</a></li>
+          <li><a href="#">The trouble with Lemurs</a></li>
+        </ul>
+      </div>
+    </main>
+
+    <footer>
+      <p>©Copyright 2050 by nobody. All rights reversed.</p>
+    </footer>
+
+    <!--
+      END:
+        Beautiful HTML markup
+    -->
+
+
+    <script>
+      /*
+        BEGIN
+          Spaghetti let's go!
+      */
+
+      // Search highlighter
+      document.querySelector('.search').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        document.querySelectorAll('.highlight').forEach(function(el) {
+          var parent = el.parentNode;
+          parent.replaceChild(document.createTextNode(el.textContent), el);
+          parent.normalize();
+        });
+
+        var searchKey = this.q.value.trim();
+        if (!searchKey) return;
+
+        var regex = new RegExp('(' + searchKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+
+        function walk(node) {
+          if (node.nodeType === 3) { // Text node
+            var match = node.nodeValue.match(regex);
+            if (match) {
+              var span = document.createElement('span');
+              span.innerHTML = node.nodeValue.replace(regex, '<mark class="highlight">$1</mark>');
+              node.replaceWith.apply(node, span.childNodes);
+            }
+          } 
+          else if (node.nodeType === 1 && node.tagName !== 'SCRIPT' && node.tagName !== 'STYLE' && node.tagName !== 'FORM') {
+            node.childNodes.forEach(walk);
+          }
+        }
+
+        walk(document.body);
+      });
+
+
+      // Show/hide comments toggle
+      var showHideBtn = document.querySelector('.show-hide');
+      var commentWrapper = document.querySelector('.comment-wrapper');
+
+      commentWrapper.style.display = 'none';
+
+      showHideBtn.onclick = function() {
+        var showHideText = showHideBtn.textContent;
+        if (showHideText === 'Show comment') { 
+          showHideBtn.textContent = 'Hide comments';
+          commentWrapper.style.display = 'block';
+        } else {
+          showHideBtn.textContent = 'Show comments';
+          commentWrapper.style.display = 'none';
+        }
+      };
+
+      // Comment form stuff
+      var form = document.querySelector('.comment-form');
+      var nameField = document.querySelector('#name');
+      var commentField = document.querySelector('#comment');
+      var list = document.querySelector('.comment-container');
+
+      form.onsubmit = function(e) {
+        e.preventDefault();
+
+        var listItem = document.createElement('li');
+        var namePara = document.createElement('p');
+        var commentPara = document.createElement('p');
+        var nameValue = nameField.valeu;
+        var commentValue = commentField.value;
+
+        namePara.textContnet = nameValue;
+        commentPara.textContent = commentValue;
+
+        console.log(nameValue);
+
+        list.appendChild(listItem);
+        listItem.appendChild(namePara);
+        listItem.appendChild(commentPara);
+
+        nameField.value = '';
+        commentField.value = '';
+      };
+
+      // Fetching bear data 
+      var baseUrl = "https://en.wikipedia.org/w/api.php";
+      var title = "List_of_ursids";
+
+      var params = {
+        action: "parse",
+        page: title,
+        prop: "wikitext",
+        section: 3,
+        format: "json",
+        origin: "*"
+      };
+
+      function fetchImageUrl(fileName) {
+        var imageParams = {
+          action: "query",
+          titles: "File:" + fileName,
+          prop: "imageinfo",
+          iiprop: "url",
+          format: "json",
+          origin: "*"
+        };
+
+        var url = baseUrl + "?" + new URLSearchParams(imageParams).toString();
+        return fetch(url).then(function(res) {
+          return res.json();
+        }).then(function(data) {
+          var pages = data.query.pages;
+          var page = Object.values(pages)[0];
+          return page.imageinfo[0].url;
+        });
+      }
+
+      function extractBears(wikitext) {
+        var speciesTables = wikitext.split('{{Species table/end}}');
+        var bears = [];
+        speciesTables.forEach(function(table) {
+          var rows = table.split('{{Species table/row');
+          rows.forEach(function(row) {
+            var nameMatch = row.match(/\|name=\[\[(.*?)\]\]/);
+            var binomialMatch = row.match(/\|binomial=(.*?)\n/);
+            var imageMatch = row.match(/\|image=(.*?)\n/);
+
+            if (nameMatch && binomialMatch && imageMatch) {
+              var fileName = imageMatch[1].trim().replace('File:', '');
+
+              fetchImageUrl(fileName).then(function(imageUrl) {
+                var bear = {
+                  name: nameMatch[1],
+                  binomial: binomialMatch[1],
+                  image: imageUrl,
+                  range: "TODO extract correct range"
+                };
+                bears.push(bear);
+
+                if (bears.length === rows.length) {
+                  var moreBears = document.querySelector('.more_bears');
+                  bears.forEach(function(bear) {
+                    var html = '<div class="bear">' +
+                      '<img src="' + bear.image + '" alt="Image of ' + bear.name + '" style="width:200px; height:auto;">' +
+                      '<p><b>' + bear.name + '</b> (' + bear.binomial + ')</p>' +
+                      '<p>Range: ' + bear.range + '</p>' +
+                      '</div>';
+                    moreBears.innerHTML += html;
+                  });
+                }
+              });
+            }
+          });
+        });
+      }
+
+      fetch(baseUrl + "?" + new URLSearchParams(params).toString())
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          extractBears(data.parse.wikitext['*']);
+        });
+
+    </script>
+  </body>
+</html>
