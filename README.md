@@ -51,6 +51,20 @@ Split the code into separate script files and use ES modules (`import`/`export`)
 
 **Theory question:** How does an ES module differ from a classic script with respect to scope, strict mode, loading, and bindings? Explain why the module boundaries you chose make the application easier to maintain.
 
+> **Answer:**
+>
+> * **Scope:** A classic `<script>` runs in the global scope — top-level `var`/`function` declarations become properties of `window`, so scripts can silently clash over names. A module has its own top-level scope; nothing declared at the top level of `search.js` or `bears.js` leaks into another file or onto `window`. The only way to share something is an explicit `export`, and the only way to consume it is an explicit `import`.
+> * **Strict mode:** Modules are automatically parsed in strict mode, without a `'use strict'` pragma. This forbids implicit globals (assigning to an undeclared variable throws), disallows duplicate parameter names, and generally rules out several classic-script foot-guns.
+> * **Loading:** Classic scripts are fetched and executed synchronously in document order, blocking HTML parsing unless `async`/`defer` is used. `<script type="module">` is deferred by default, is fetched with CORS, and its dependency graph (everything reachable via `import`) is downloaded and executed only after that whole graph is resolved and in dependency order — imports first, then the importing module. This is also why modules must be served over `http(s)://`; the browser refuses to resolve module specifiers over `file://`, which is why the app needed a local static server (`python -m http.server`) to test.
+> * **Bindings:** A classic script that "shares" a value across files does so by copying it onto a global object — later scripts read whatever value happened to be there at that time. An `import` is a live, read-only binding to the exporting module's variable: if the exporting module later reassigns the exported variable, every importer sees the new value automatically, without any copy or global lookup. Module instances are also singletons — a module is fetched, parsed, and evaluated once no matter how many other modules import it, so state defined in it (e.g. the `baseUrl` in `wikiApi.js`) is naturally shared rather than duplicated.
+>
+> **Why these module boundaries:** The original inline script mixed three unrelated responsibilities (search highlighting, comment UI, and Wikipedia data fetching/rendering) in one 160-line block sharing one implicit global scope. The refactor splits it along what each piece actually depends on:
+>
+> * `search.js` and `comments.js` are self-contained UI features with no dependencies on anything else — each can be read, tested, or replaced without touching the others.
+> * `wikiApi.js` contains only network calls (`fetch` + URL building) and has zero DOM knowledge, so it can be reused or unit-tested independently of rendering.
+> * `bears.js` imports from `wikiApi.js` (parsing/rendering depends on fetching data) but nothing imports back into `wikiApi.js`, so the dependency graph is a simple one-directional chain with no cycles.
+> * `main.js` is the only file that knows about all the features; it just imports and calls each `init*` function. Adding, removing, or reordering a feature means editing one line in `main.js` instead of hunting through a monolithic script, and a bug in one feature (e.g. the comment form) can't accidentally corrupt state used by another (e.g. the bear renderer) because they no longer share scope.
+
 #### Task 2: Correct the application behavior
 
 Fix the semantic and functional issues according to the app requirements. Use appropriate DOM queries and event handling, and ensure the bear list has the same order and number of entries as the source page.
