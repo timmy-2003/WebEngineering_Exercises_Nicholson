@@ -75,6 +75,7 @@ Fix the semantic and functional issues according to the app requirements. Use ap
 > * **Comment name/text never captured (`js/comments.js`)** — `.valeu`/`textContnet` typos. Fixed to `.value`/`.textContent`.
 > * **Empty comments allowed** — added `required` to the name/comment inputs and a trimmed-value guard in the submit handler.
 > * **Search highlighted the whole page (`js/search.js`)** — `walk()` ran on `document.body` instead of `<article>`, leaking highlights into the nav/sidebar. Scoped it to `document.querySelector('article')`.
+> * **Comment toggle only expanded once (`js/comments.js`)** — found after the fact, user-reported: the toggle inferred its state by comparing the button's *own displayed text* against the literal `'Show comment'` (singular), but after the first click the button only ever reads `'Hide comments'`/`'Show comments'` (plural). So the `if` branch matching the singular string could fire once, ever; every click after that fell into the `else` branch, which unconditionally set `display: none` — hiding again instead of re-expanding. Fixed by tracking a real `isVisible` boolean instead of parsing the button's own label back as state. Verified: four consecutive clicks now alternate `block`/`none` correctly, instead of getting stuck hidden after the second click.
 
 **Theory question:** Describe event propagation (capturing, target, and bubbling). Where could event delegation be useful in this application, and what trade-off would it introduce?
 
@@ -110,11 +111,24 @@ Add error handling with `try`/`catch` and show useful, user-facing error message
 
 #### Task 4: Refactor asynchronous control flow
 
-#### Task 4: Refactor asynchronous control flow
-
 Replace promise callback chains with `async`/`await` and refactor suitable callbacks to arrow functions. Run independent asynchronous operations concurrently where doing so is safe.
 
+> **What was fixed:**
+>
+> * **`js/wikiApi.js`** — both fetch functions were `.then()` chains; rewritten as `async function`s using `await`, which reads top-to-bottom instead of nested callbacks.
+> * **`js/bears.js`** — `loadImage`/`resolveBearImage` converted from `.then()`/`.catch()` to `async`/`await` with `try`/`catch`. The per-bear mapping inside `Promise.all(entries.map(...))` is now an `async` arrow function that `await`s `resolveBearImage` directly instead of chaining `.then()`. `Promise.all` was already in place from Task 2/3 and is kept — it's what runs every bear's image fetch concurrently, and there's nothing else in this app that's both async and independent enough to parallelize further.
+> * **Callbacks → arrow functions**, everywhere `this` wasn't needed: the `forEach`/`map` callbacks in `bears.js` and `search.js`, `walk()` in `search.js`, and the `onclick`/`onsubmit` handlers in `comments.js`.
+> * **One callback deliberately kept as a regular function**: the search form's `submit` listener in `search.js` reads `this.q.value`, where `this` is the `<form>` (`addEventListener` binds `this` to the element the listener is on). An arrow function has no `this` of its own — it would've inherited `this` from the enclosing module scope (`undefined`), breaking `this.q`. This is the concrete case the theory question asks about.
+>
+> Re-verified after the refactor: the bear list still renders all 8 entries in order, the search highlighter still confines matches to `<article>`, and the comment form still validates and appends correctly — no behavioral changes, only control-flow style.
+
 **Theory question:** Explain the relationship between `async`/`await`, promises, the microtask queue, and the browser event loop. Also explain why an arrow function is not always an interchangeable replacement for a regular function, particularly regarding `this`.
+
+> **Answer:**
+>
+> `async`/`await` is syntax sugar over promises, not a different mechanism: an `async function` always returns a promise, and `await` pauses that function's body until the awaited promise settles, without blocking the rest of the program. When a promise settles, its `.then()` callbacks (and the continuation after an `await`) don't run immediately — they're queued as **microtasks**. The browser's event loop finishes running the current synchronous script, then drains the entire microtask queue before it paints or handles the next macrotask (timers, I/O, UI events). This is why, in `main.js`, calling `initBearData()` without `await` doesn't block `initSearchHighlighter()`/`initCommentToggle()`/`initCommentForm()` from running: `initBearData` executes synchronously up to its first `await fetchBearListWikitext(...)`, then yields — the rest of `main.js` runs immediately after, and `initBearData`'s continuation only resumes later, as a microtask, once the network response arrives.
+>
+> An arrow function is not always interchangeable with a regular function because it has no `this` (or `arguments`) of its own — it captures `this` lexically from the scope it was *defined* in, rather than getting a new `this` bound by *how it's called*. Most callbacks in this app don't care, so converting them was safe. But `search.js`'s submit handler needs `this` to be the `<form>` element, which only happens because `addEventListener` calls a regular function with `this` set to the element the listener was attached to; written as an arrow function, `this` inside it would resolve to whatever `this` is in `initSearchHighlighter`'s scope (`undefined`, since ES modules are strict mode), and `this.q.value` would throw. That's why it's the one callback in the codebase left as `function(e) { ... }`.
 
 #### Task 5: Remove remaining code smells
 

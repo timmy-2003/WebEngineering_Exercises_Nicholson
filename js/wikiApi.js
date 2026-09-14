@@ -1,9 +1,9 @@
 // Wikipedia API access - pure network calls, no DOM knowledge
 
-var baseUrl = 'https://en.wikipedia.org/w/api.php';
+const baseUrl = 'https://en.wikipedia.org/w/api.php';
 
-export function fetchBearListWikitext(title, section) {
-  var params = {
+export async function fetchBearListWikitext(title, section) {
+  const params = {
     action: 'parse',
     page: title,
     prop: 'wikitext',
@@ -12,30 +12,29 @@ export function fetchBearListWikitext(title, section) {
     origin: '*'
   };
 
-  var url = baseUrl + '?' + new URLSearchParams(params).toString();
-  return fetch(url)
-    .then(function(res) {
-      if (!res.ok) {
-        throw new Error('Wikipedia API request failed with status ' + res.status);
-      }
-      return res.json();
-    })
-    .then(function(data) {
-      if (data.error) {
-        throw new Error('Wikipedia API error: ' + data.error.info);
-      }
+  const url = baseUrl + '?' + new URLSearchParams(params).toString();
+  const res = await fetch(url);
 
-      var wikitext = data.parse && data.parse.wikitext && data.parse.wikitext['*'];
-      if (!wikitext) {
-        throw new Error('Unexpected Wikipedia API response: missing wikitext.');
-      }
+  if (!res.ok) {
+    throw new Error('Wikipedia API request failed with status ' + res.status);
+  }
 
-      return wikitext;
-    });
+  const data = await res.json();
+
+  if (data.error) {
+    throw new Error('Wikipedia API error: ' + data.error.info);
+  }
+
+  const wikitext = data.parse && data.parse.wikitext && data.parse.wikitext['*'];
+  if (!wikitext) {
+    throw new Error('Unexpected Wikipedia API response: missing wikitext.');
+  }
+
+  return wikitext;
 }
 
-export function fetchImageUrl(fileName) {
-  var imageParams = {
+export async function fetchImageUrl(fileName) {
+  const imageParams = {
     action: 'query',
     titles: 'File:' + fileName,
     prop: 'imageinfo',
@@ -44,23 +43,21 @@ export function fetchImageUrl(fileName) {
     origin: '*'
   };
 
-  var url = baseUrl + '?' + new URLSearchParams(imageParams).toString();
-  return fetch(url)
-    .then(function(res) {
-      if (!res.ok) {
-        throw new Error('Wikipedia API request failed with status ' + res.status);
-      }
-      return res.json();
-    })
-    .then(function(data) {
-      var pages = data.query && data.query.pages;
-      var page = pages && Object.values(pages)[0];
-      var info = page && page.imageinfo && page.imageinfo[0];
+  const url = baseUrl + '?' + new URLSearchParams(imageParams).toString();
+  const res = await fetch(url);
 
-      if (!info || !info.url) {
-        throw new Error('No image available for "' + fileName + '"');
-      }
+  if (!res.ok) {
+    throw new Error('Wikipedia API request failed with status ' + res.status);
+  }
 
-      return info.url;
-    });
+  const data = await res.json();
+  const pages = data.query && data.query.pages;
+  const page = pages && Object.values(pages)[0];
+  const info = page && page.imageinfo && page.imageinfo[0];
+
+  if (!info || !info.url) {
+    throw new Error('No image available for "' + fileName + '"');
+  }
+
+  return info.url;
 }

@@ -1,42 +1,38 @@
 // Comment section: show/hide toggle and comment form submission
 
 export function initCommentToggle() {
-  var showHideBtn = document.querySelector('.show-hide');
-  var commentWrapper = document.querySelector('.comment-wrapper');
+  const showHideBtn = document.querySelector('.show-hide');
+  const commentWrapper = document.querySelector('.comment-wrapper');
 
   commentWrapper.style.display = 'none';
+  let isVisible = false;
 
-  showHideBtn.onclick = function() {
-    var showHideText = showHideBtn.textContent;
-    if (showHideText === 'Show comment') {
-      showHideBtn.textContent = 'Hide comments';
-      commentWrapper.style.display = 'block';
-    } else {
-      showHideBtn.textContent = 'Show comments';
-      commentWrapper.style.display = 'none';
-    }
+  showHideBtn.onclick = () => {
+    isVisible = !isVisible;
+    showHideBtn.textContent = isVisible ? 'Hide comments' : 'Show comments';
+    commentWrapper.style.display = isVisible ? 'block' : 'none';
   };
 }
 
 export function initCommentForm() {
-  var form = document.querySelector('.comment-form');
-  var nameField = document.querySelector('#name');
-  var commentField = document.querySelector('#comment');
-  var list = document.querySelector('.comment-container');
+  const form = document.querySelector('.comment-form');
+  const nameField = document.querySelector('#name');
+  const commentField = document.querySelector('#comment');
+  const list = document.querySelector('.comment-container');
 
-  form.onsubmit = function(e) {
+  form.onsubmit = (e) => {
     e.preventDefault();
 
-    var nameValue = nameField.value.trim();
-    var commentValue = commentField.value.trim();
+    const nameValue = nameField.value.trim();
+    const commentValue = commentField.value.trim();
 
     if (!nameValue || !commentValue) {
       return;
     }
 
-    var listItem = document.createElement('li');
-    var namePara = document.createElement('p');
-    var commentPara = document.createElement('p');
+    const listItem = document.createElement('li');
+    const namePara = document.createElement('p');
+    const commentPara = document.createElement('p');
 
     namePara.textContent = nameValue;
     commentPara.textContent = commentValue;
