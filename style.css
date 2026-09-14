@@ -186,6 +186,11 @@ audio {
   width: 500px;
 }
 
+.bear img {
+  width: 200px;
+  height: auto;
+}
+
 .error-message {
   background-color: #fdd;
   color: #900;

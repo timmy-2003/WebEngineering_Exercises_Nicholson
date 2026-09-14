@@ -53,27 +53,42 @@ async function resolveBearImage(fileName) {
   }
 }
 
-function renderBears(bears) {
-  const moreBears = document.querySelector('.more_bears');
-  const html = bears.map((bear) => (
-    '<div class="bear">' +
-    '<img src="' + bear.image + '" alt="Image of ' + bear.name + '" style="width:200px; height:auto;">' +
-    '<p><b>' + bear.name + '</b> (' + bear.binomial + ')</p>' +
-    '<p>Range: ' + bear.range + '</p>' +
-    '</div>'
-  )).join('');
-  moreBears.innerHTML += html;
+function createBearCard(bear) {
+  const card = document.createElement('div');
+  card.className = 'bear';
+
+  const img = document.createElement('img');
+  img.src = bear.image;
+  img.alt = 'Image of ' + bear.name;
+
+  const namePara = document.createElement('p');
+  const nameBold = document.createElement('b');
+  nameBold.textContent = bear.name;
+  namePara.append(nameBold, ' (' + bear.binomial + ')');
+
+  const rangePara = document.createElement('p');
+  rangePara.textContent = 'Range: ' + bear.range;
+
+  card.append(img, namePara, rangePara);
+  return card;
 }
 
-function renderBearError(message) {
-  const moreBears = document.querySelector('.more_bears');
+function renderBears(container, bears) {
+  const fragment = document.createDocumentFragment();
+  bears.forEach((bear) => fragment.appendChild(createBearCard(bear)));
+  container.appendChild(fragment);
+}
+
+function renderBearError(container, message) {
   const errorPara = document.createElement('p');
   errorPara.className = 'error-message';
   errorPara.textContent = message;
-  moreBears.appendChild(errorPara);
+  container.appendChild(errorPara);
 }
 
 export async function initBearData() {
+  const moreBears = document.querySelector('.more_bears');
+
   try {
     const wikitext = await fetchBearListWikitext('List_of_ursids', 3);
     const entries = extractBearEntries(wikitext);
@@ -92,9 +107,9 @@ export async function initBearData() {
       };
     }));
 
-    renderBears(bears);
+    renderBears(moreBears, bears);
   } catch (err) {
     console.error('Failed to load bear data:', err);
-    renderBearError('Sorry, we could not load the bear information right now. Please try again later.');
+    renderBearError(moreBears, 'Sorry, we could not load the bear information right now. Please try again later.');
   }
 }

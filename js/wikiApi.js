@@ -2,16 +2,7 @@
 
 const baseUrl = 'https://en.wikipedia.org/w/api.php';
 
-export async function fetchBearListWikitext(title, section) {
-  const params = {
-    action: 'parse',
-    page: title,
-    prop: 'wikitext',
-    section: section,
-    format: 'json',
-    origin: '*'
-  };
-
+async function fetchJson(params) {
   const url = baseUrl + '?' + new URLSearchParams(params).toString();
   const res = await fetch(url);
 
@@ -19,7 +10,18 @@ export async function fetchBearListWikitext(title, section) {
     throw new Error('Wikipedia API request failed with status ' + res.status);
   }
 
-  const data = await res.json();
+  return res.json();
+}
+
+export async function fetchBearListWikitext(title, section) {
+  const data = await fetchJson({
+    action: 'parse',
+    page: title,
+    prop: 'wikitext',
+    section: section,
+    format: 'json',
+    origin: '*'
+  });
 
   if (data.error) {
     throw new Error('Wikipedia API error: ' + data.error.info);
@@ -34,23 +36,15 @@ export async function fetchBearListWikitext(title, section) {
 }
 
 export async function fetchImageUrl(fileName) {
-  const imageParams = {
+  const data = await fetchJson({
     action: 'query',
     titles: 'File:' + fileName,
     prop: 'imageinfo',
     iiprop: 'url',
     format: 'json',
     origin: '*'
-  };
+  });
 
-  const url = baseUrl + '?' + new URLSearchParams(imageParams).toString();
-  const res = await fetch(url);
-
-  if (!res.ok) {
-    throw new Error('Wikipedia API request failed with status ' + res.status);
-  }
-
-  const data = await res.json();
   const pages = data.query && data.query.pages;
   const page = pages && Object.values(pages)[0];
   const info = page && page.imageinfo && page.imageinfo[0];
