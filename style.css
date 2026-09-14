@@ -1,6 +1,7 @@
 /* || General setup */
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
 }
@@ -18,13 +19,19 @@ body {
 
 /* || typography */
 
-font[size="7"], font[size="6"], font[size="5"] {
-  font-family: 'Sonsie One', cursive;
+font[size="7"],
+font[size="6"],
+font[size="5"] {
+  font-family: "Sonsie One", cursive;
   color: #2a2a2a;
 }
 
-p, input, li, table, label {
-  font-family: 'Open Sans Condensed', sans-serif;
+p,
+input,
+li,
+table,
+label {
+  font-family: "Open Sans Condensed", sans-serif;
   color: #2a2a2a;
 }
 
@@ -44,18 +51,25 @@ font[size="5"] {
   font-size: 2.2rem;
 }
 
-p, li, table {
+p,
+li,
+table {
   font-size: 1.6rem;
   line-height: 1.5;
 }
 
 /* || header layout */
 
-div[class="nav"], article, footer, .secondary {
+div[class="nav"],
+article,
+footer,
+.secondary {
   background-color: green;
 }
 
-article, footer, .secondary {
+article,
+footer,
+.secondary {
   padding: 10px 30px;
 }
 
@@ -143,7 +157,8 @@ table {
   border-collapse: collapse;
 }
 
-th, td {
+th,
+td {
   padding: 10px;
 }
 
@@ -161,13 +176,22 @@ tbody tr:nth-child(odd) {
 
 /* styling content images and audio */
 
-img, audio {
+img,
+audio {
   display: block;
   margin: 0 auto;
 }
 
 audio {
   width: 500px;
+}
+
+.error-message {
+  background-color: #fdd;
+  color: #900;
+  border: 1px solid #900;
+  padding: 1rem;
+  border-radius: 4px;
 }
 
 /* Comments styling */
@@ -214,12 +238,15 @@ audio {
   width: 150px;
 }
 
-.comment-form input, .comment-form label, .show-hide {
+.comment-form input,
+.comment-form label,
+.show-hide {
   font-size: 1.6rem;
   line-height: 32px;
 }
 
-.comment-form input[type="submit"], .show-hide {
+.comment-form input[type="submit"],
+.show-hide {
   background: #333;
   border: 0;
   color: white;

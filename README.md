@@ -90,7 +90,25 @@ Fix the semantic and functional issues according to the app requirements. Use ap
 
 Add error handling with `try`/`catch` and show useful, user-facing error messages. Check whether each image can be loaded and render a placeholder when it cannot. Do not represent a failed request as valid empty data.
 
+> **What was fixed:**
+>
+> * **Wikipedia API failures were unhandled (`js/wikiApi.js`)** — both functions blindly read into the response shape (`data.parse.wikitext['*']`, `page.imageinfo[0].url`), so an API error, a missing page, or a missing image threw an opaque `TypeError` that nothing ever caught. Both now check `res.ok`, check for `data.error`, and validate the expected fields exist, throwing a specific `Error` with a clear message for each distinct failure instead.
+> * **A missing image crashed the whole list (`js/bears.js`)** — previously nothing distinguished "this file has no image" from "the network request failed," and either one would silently break the app requirement that missing images fall back to a placeholder. Added `resolveBearImage()`, which fetches the image URL, verifies it actually loads via a real `Image()` object (`onload`/`onerror`), and falls back to an inline SVG placeholder on any failure — logged with `console.warn` so it's still visible for debugging, but never surfaced as a user-facing error since a missing photo isn't fatal.
+> * **A failed wikitext fetch rendered nothing, with no explanation** — `initBearData()` is now an `async` function with one `try`/`catch` around the whole pipeline: on failure it renders a styled `.error-message` paragraph into `.more_bears` instead of leaving that section empty (which would look like "zero bears exist" rather than "the request failed"). The same check now throws if parsing the wikitext yields zero entries, for the same reason.
+>
+> Verified against the live API: a nonexistent file name now throws `No image available for "…"` (a `TypeError` before), a nonexistent page title throws `Wikipedia API error: …`, and the top-level catch renders a visible red `.error-message` box — while the normal path still renders all 8 bears with no regressions.
+
 **Theory question:** How do synchronous exceptions and rejected promises travel through this application? Explain where errors should be caught and why catching every error at its source can make failures harder to diagnose.
+
+> **Answer:**
+>
+> A **synchronous exception** unwinds the call stack immediately, until a `try`/`catch` catches it or nothing does. A **rejected promise** instead travels along a `.then()` chain, skipping success handlers until it hits a `.catch()` — or, under `await`, until it reaches an enclosing `try`/`catch`, since `await` re-throws a rejection as a normal exception at the call site. That's why `async`/`await` unifies the two: inside `initBearData()`, a synchronous throw from `extractBearEntries()` and an awaited rejection from `fetchBearListWikitext()` both land in the same `catch` block. A bare `try`/`catch` around code that only *starts* a `.then()` chain would miss that chain's rejections entirely, since they resolve later, outside the synchronous block the `try` covers.
+>
+> **Where to catch:** at the smallest boundary that still has enough context to decide what to do. `resolveBearImage()` catches per-image failures because the right response there is simply "show a placeholder" — the caller shouldn't need to know why. `initBearData()` catches everything else, since it's the only place that knows what the user should see if the pipeline fails; `wikiApi.js` itself never catches — it only validates and throws more specific errors, leaving the response up to its caller.
+>
+> **Why catching at the source is worse:** if `fetchImageUrl()` swallowed every error into, say, `null`, the caller could no longer tell "no image exists" apart from "the network failed" apart from "the API changed shape" — exactly the failed-request-as-valid-empty-data anti-pattern this task warns against. An error discarded at the lowest layer also never reaches anything able to log it with context or decide it's worth surfacing to the user — it just vanishes. Catching close to the source is right only when that source also has enough information to pick a correct fallback; everywhere else, letting the error propagate to a boundary that can actually respond is what keeps failures diagnosable instead of silent.
+
+#### Task 4: Refactor asynchronous control flow
 
 #### Task 4: Refactor asynchronous control flow
 
