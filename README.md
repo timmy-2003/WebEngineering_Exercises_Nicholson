@@ -69,7 +69,22 @@ Split the code into separate script files and use ES modules (`import`/`export`)
 
 Fix the semantic and functional issues according to the app requirements. Use appropriate DOM queries and event handling, and ensure the bear list has the same order and number of entries as the source page.
 
+> **What was fixed:**
+>
+> * **Bear list order/duplicates (`js/bears.js`)** — bears were pushed into a shared array as async image fetches resolved (order depended on network timing), and the "done yet?" check compared a global count to a per-table count, causing re-renders/duplicates. Fixed by extracting entries in wikitext order first, then fetching images with `Promise.all` (order-preserving) and rendering once.
+> * **Comment name/text never captured (`js/comments.js`)** — `.valeu`/`textContnet` typos. Fixed to `.value`/`.textContent`.
+> * **Empty comments allowed** — added `required` to the name/comment inputs and a trimmed-value guard in the submit handler.
+> * **Search highlighted the whole page (`js/search.js`)** — `walk()` ran on `document.body` instead of `<article>`, leaking highlights into the nav/sidebar. Scoped it to `document.querySelector('article')`.
+
 **Theory question:** Describe event propagation (capturing, target, and bubbling). Where could event delegation be useful in this application, and what trade-off would it introduce?
+
+> **Answer:**
+>
+> When an event fires, the DOM dispatches it in three phases. First is the **capturing** phase: the event starts at `window`/`document` and travels down through each ancestor of the actual element, from the outside in. Once it reaches the element the event actually happened on, that's the **target** phase. Then the event **bubbles**: it travels back up through the same chain of ancestors, from the target outward to `document`/`window`. `addEventListener` listens on the bubbling phase by default; passing `{ capture: true }` attaches the listener to the capturing phase instead. `stopPropagation()` halts this traversal in whichever direction it's currently going, and a handler can inspect `event.target` (the element the event actually fired on) versus `event.currentTarget` (the element the listener is attached to) to tell the two apart.
+>
+> **Where delegation would help here:** The `.more_bears` list (`js/bears.js`) and the `.comment-container` list (`js/comments.js`) both grow at runtime, after the page has already loaded — bear cards are added once the Wikipedia fetch resolves, and comments are added on every form submission. Any listener meant to react to clicks *inside* those cards (e.g. a "read more about this bear" link per card, or a future "delete comment" button) can't be attached per-element as each one is created without re-running that wiring every time the list changes. Delegation solves this cleanly: attach one listener to the stable parent (`.more_bears` or `.comment-container`) that already exists at page load, and rely on bubbling — a click on any current *or future* child bubbles up to that one listener, which then reads `event.target.closest(...)` to figure out which specific card or comment was clicked.
+>
+> **Trade-off:** delegation trades a direct, self-describing handler for a layer of indirection — the listener no longer knows which element triggered it, so it has to inspect `event.target` and walk up with `.closest()` to find the actual element of interest, and to explicitly filter out clicks that landed on the container itself or on unrelated descendants (e.g. an `<img>` versus the containing `.bear` div). It also only works for events that actually bubble (`click`, `submit`, `input` do; `focus`/`blur` don't, though their `focusin`/`focusout` counterparts do), and it breaks if an inner handler calls `stopPropagation()` before the event reaches the delegated listener. For the search form, the show/hide button, and the comment form in this app — each a single, static element already known at load time — that indirection would be pure overhead with no benefit, which is why they keep direct listeners instead.
 
 #### Task 3: Make failures explicit
 

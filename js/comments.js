@@ -27,16 +27,19 @@ export function initCommentForm() {
   form.onsubmit = function(e) {
     e.preventDefault();
 
+    var nameValue = nameField.value.trim();
+    var commentValue = commentField.value.trim();
+
+    if (!nameValue || !commentValue) {
+      return;
+    }
+
     var listItem = document.createElement('li');
     var namePara = document.createElement('p');
     var commentPara = document.createElement('p');
-    var nameValue = nameField.valeu;
-    var commentValue = commentField.value;
 
-    namePara.textContnet = nameValue;
+    namePara.textContent = nameValue;
     commentPara.textContent = commentValue;
-
-    console.log(nameValue);
 
     list.appendChild(listItem);
     listItem.appendChild(namePara);

@@ -4,7 +4,9 @@ export function initSearchHighlighter() {
   document.querySelector('.search').addEventListener('submit', function(e) {
     e.preventDefault();
 
-    document.querySelectorAll('.highlight').forEach(function(el) {
+    var article = document.querySelector('article');
+
+    article.querySelectorAll('.highlight').forEach(function(el) {
       var parent = el.parentNode;
       parent.replaceChild(document.createTextNode(el.textContent), el);
       parent.normalize();
@@ -29,6 +31,6 @@ export function initSearchHighlighter() {
       }
     }
 
-    walk(document.body);
+    walk(article);
   });
 }
