@@ -25,3 +25,6 @@ build
 *.sw?
 
 coverage
+
+# Husky's generated internal helper scripts (recreated by `npm install`'s prepare step)
+.husky/_
