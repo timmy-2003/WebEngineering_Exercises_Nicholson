@@ -540,14 +540,6 @@ The `build`, `lint`, and `format:check` commands must exit with a non-zero statu
 > - Widened `eslint.config.js`'s `files` pattern from `src/**/*.ts` to `['src/**/*.ts', 'src/**/*.js']`, matching the
 >   assignment's "all `.js` and `.ts` files" wording exactly (there are currently no `.js` files under `src/`, so this
 >   has no effect today, but it means one wouldn't silently go unlinted if added later).
->
-> Verified all three failure-exit requirements directly rather than assuming it: added a scratch file to `src/` with an
-> unused variable, a formatting violation, and a type error, confirmed `npm run lint`, `npm run format:check`, and
-> `npm run build` each exited non-zero (`1`, `1`, `2` respectively), then deleted the scratch file and re-confirmed all
-> three pass cleanly again on the real source. `build`'s and `lint`'s non-zero-on-failure behavior come for free from
-> `tsc`/`vite`/`eslint` themselves; `format:check` needed the dedicated `--check` flag specifically because plain
-> `prettier --write` (the `format` script) always exits `0` — it fixes issues rather than failing on them, which is why
-> a CI gate needs the separate, non-mutating `--check` variant.
 
 **Theory question:** Why are stable, composable commands such as these useful as an interface for developers and CI?
 Explain idempotence and identify which of your scripts should be idempotent.
@@ -590,15 +582,22 @@ request.
 > **What was set up — CI (`.github/workflows/ci.yml`):**
 >
 > - Triggers on every `push` and `pull_request`, matching the assignment's wording exactly (no branch filter).
+> - Four independent jobs (`typecheck`, `lint`, `format`, `build`) rather than one job with four sequential steps: each
+>   runs on its own fresh runner, so none block or depend on another passing first. A push shows all four results at
+>   once — e.g. a lint failure doesn't hide a separately-broken build behind it — and each job shows up as its own named
+>   status check on a pull request (`Type check`, `Lint`, `Check formatting`, `Build`) instead of one combined check.
+> - Each job repeats the same `checkout` → `setup-node` → `npm ci` → one check pattern. `setup-node`'s `cache: npm` keys
+>   its cache to `package-lock.json`, so the four parallel `npm ci` runs mostly hit that cache instead of re-downloading
+>   everything four times — the trade-off for independent, non-blocking jobs on a project this small.
 > - `npm ci` (not `npm install`) installs dependencies strictly from `package-lock.json`, per the assignment's
 >   requirement and the reasoning from Task 1's theory answer: reproducible builds need the exact resolved dependency
 >   tree, not whatever a fresh `npm install` might re-resolve.
-> - Four separate, non-mutating steps: `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run build` —
->   deliberately the `:check`/read-only scripts from Task 4, never `lint:fix`/`format`, for the reason covered in the
->   theory answer below.
-> - Verified by running the exact same four commands locally in sequence against a clean `npm ci` install — all pass —
->   and separately confirmed (via a scratch file, then deleted) that `lint`, `format:check`, and `build` each exit
->   non-zero on a real violation, so a genuinely broken commit would fail this pipeline.
+> - Each job runs exactly one non-mutating script (`npm run typecheck`/`lint`/`format:check`/`build`) — deliberately the
+>   `:check`/read-only scripts from Task 4, never `lint:fix`/`format`, for the reason covered in the theory answer
+>   below.
+> - Verified by running the exact same four commands locally (each is literally the single command its job runs) — all
+>   pass — and separately confirmed (via a scratch file, then deleted) that `lint`, `format:check`, and `build` each
+>   exit non-zero on a real violation, so a genuinely broken commit would fail its corresponding job.
 >
 > **What was set up — pre-commit hook (husky + lint-staged):**
 >
