@@ -1,0 +1,118 @@
+{
+  "batchcomplete": true,
+  "query": {
+    "pages": [
+      {
+        "ns": 6,
+        "title": "File:Polar Bear - Alaska (cropped).jpg",
+        "missing": true,
+        "known": true,
+        "imagerepository": "shared",
+        "imageinfo": [
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/6/66/Polar_Bear_-_Alaska_%28cropped%29.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+            "descriptionurl": "https://commons.wikimedia.org/wiki/File:Polar_Bear_-_Alaska_(cropped).jpg",
+            "descriptionshorturl": "https://commons.wikimedia.org/w/index.php?curid=38456823"
+          }
+        ]
+      },
+      {
+        "ns": 6,
+        "title": "File:Kamchatka Brown Bear near Dvuhyurtochnoe on 2015-07-23.jpg",
+        "missing": true,
+        "known": true,
+        "imagerepository": "shared",
+        "imageinfo": [
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/5/5d/Kamchatka_Brown_Bear_near_Dvuhyurtochnoe_on_2015-07-23.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+            "descriptionurl": "https://commons.wikimedia.org/wiki/File:Kamchatka_Brown_Bear_near_Dvuhyurtochnoe_on_2015-07-23.jpg",
+            "descriptionshorturl": "https://commons.wikimedia.org/w/index.php?curid=46854733"
+          }
+        ]
+      },
+      {
+        "ns": 6,
+        "title": "File:Ursus thibetanus 3 (Wroclaw zoo).JPG",
+        "missing": true,
+        "known": true,
+        "imagerepository": "shared",
+        "imageinfo": [
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/b/b7/Ursus_thibetanus_3_%28Wroclaw_zoo%29.JPG?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+            "descriptionurl": "https://commons.wikimedia.org/wiki/File:Ursus_thibetanus_3_(Wroclaw_zoo).JPG",
+            "descriptionshorturl": "https://commons.wikimedia.org/w/index.php?curid=3165721"
+          }
+        ]
+      },
+      {
+        "ns": 6,
+        "title": "File:01 Schwarzbär.jpg",
+        "missing": true,
+        "known": true,
+        "imagerepository": "shared",
+        "imageinfo": [
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/0/08/01_Schwarzb%C3%A4r.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+            "descriptionurl": "https://commons.wikimedia.org/wiki/File:01_Schwarzb%C3%A4r.jpg",
+            "descriptionshorturl": "https://commons.wikimedia.org/w/index.php?curid=17075651"
+          }
+        ]
+      },
+      {
+        "ns": 6,
+        "title": "File:Sloth Bear Washington DC.JPG",
+        "missing": true,
+        "known": true,
+        "imagerepository": "shared",
+        "imageinfo": [
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/6/6c/Sloth_Bear_Washington_DC.JPG?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+            "descriptionurl": "https://commons.wikimedia.org/wiki/File:Sloth_Bear_Washington_DC.JPG",
+            "descriptionshorturl": "https://commons.wikimedia.org/w/index.php?curid=6221889"
+          }
+        ]
+      },
+      {
+        "ns": 6,
+        "title": "File:Spectacled Bear - Houston Zoo.jpg",
+        "missing": true,
+        "known": true,
+        "imagerepository": "shared",
+        "imageinfo": [
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/9/99/Spectacled_Bear_-_Houston_Zoo.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+            "descriptionurl": "https://commons.wikimedia.org/wiki/File:Spectacled_Bear_-_Houston_Zoo.jpg",
+            "descriptionshorturl": "https://commons.wikimedia.org/w/index.php?curid=1661803"
+          }
+        ]
+      },
+      {
+        "ns": 6,
+        "title": "File:Grosser Panda.JPG",
+        "missing": true,
+        "known": true,
+        "imagerepository": "shared",
+        "imageinfo": [
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/0/0f/Grosser_Panda.JPG?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+            "descriptionurl": "https://commons.wikimedia.org/wiki/File:Grosser_Panda.JPG",
+            "descriptionshorturl": "https://commons.wikimedia.org/w/index.php?curid=9010137"
+          }
+        ]
+      },
+      {
+        "pageid": 64123835,
+        "ns": 6,
+        "title": "File:Sitting sun bear.jpg",
+        "imagerepository": "shared",
+        "imageinfo": [
+          {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/a/a6/Sitting_sun_bear.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+            "descriptionurl": "https://commons.wikimedia.org/wiki/File:Sitting_sun_bear.jpg",
+            "descriptionshorturl": "https://commons.wikimedia.org/w/index.php?curid=11400869"
+          }
+        ]
+      }
+    ]
+  }
+}

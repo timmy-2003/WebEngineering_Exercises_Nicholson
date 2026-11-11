@@ -43,7 +43,9 @@ export class BearCard {
   readonly query = input('');
   readonly linked = input(true);
 
-  protected readonly imageSrc = linkedSignal(() => this.bear().image);
+  protected readonly imageSrc = linkedSignal(
+    () => this.bear().imageUrl ?? PLACEHOLDER_IMAGE
+  );
 
   protected useFallback(): void {
     this.imageSrc.set(PLACEHOLDER_IMAGE);

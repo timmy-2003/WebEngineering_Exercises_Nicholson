@@ -2,15 +2,15 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  inject,
   input,
   resource,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { ApiError, getBear } from '../api/api-client';
 import { Highlight } from '../search/highlight';
 import { BearCard } from './bear-card';
-import { BearData } from './bear-data';
-import { fetchArticleIntro } from './wiki-api';
+
+const HTTP_NOT_FOUND = 404;
 
 @Component({
   selector: 'app-bear-detail-page',
@@ -25,46 +25,27 @@ import { fetchArticleIntro } from './wiki-api';
         >
       </p>
 
-      @let list = bearData.state();
-      @switch (list.status) {
-        @case ('loading') {
-          <p role="status">Loading bears from Wikipedia...</p>
-        }
+      @switch (bear.status()) {
         @case ('error') {
-          <p class="error-message" role="alert">{{ list.message }}</p>
+          <p class="error-message" role="alert">{{ errorMessage() }}</p>
         }
-        @default {
-          @if (bear(); as bear) {
+        @case ('resolved') {
+          @if (bear.value(); as bear) {
             <font size="6"
               ><app-highlight [text]="bear.name" [query]="q()"
             /></font>
             <app-bear-card [bear]="bear" [query]="q()" [linked]="false" />
 
             <font size="5">About</font>
-            @switch (intro.status()) {
-              @case ('error') {
-                <p class="error-message" role="alert">
-                  Sorry, the Wikipedia introduction could not be loaded.
-                </p>
-              }
-              @case ('resolved') {
-                @if (paragraphs().length > 0) {
-                  @for (paragraph of paragraphs(); track $index) {
-                    <p><app-highlight [text]="paragraph" [query]="q()" /></p>
-                  }
-                } @else {
-                  <p>Wikipedia has no introduction for this bear.</p>
-                }
-              }
-              @default {
-                <p role="status">Loading introduction...</p>
-              }
+            @for (paragraph of paragraphs(); track $index) {
+              <p><app-highlight [text]="paragraph" [query]="q()" /></p>
+            } @empty {
+              <p>Wikipedia has no introduction for this bear.</p>
             }
-          } @else {
-            <p class="error-message" role="alert">
-              There is no bear with the identifier "{{ id() }}".
-            </p>
           }
+        }
+        @default {
+          <p role="status">Loading bear...</p>
         }
       }
     </article>
@@ -76,22 +57,23 @@ export class BearDetailPage {
     transform: (value: string | undefined) => value ?? '',
   });
 
-  protected readonly bearData = inject(BearData);
-
-  protected readonly bear = computed(() => {
-    const list = this.bearData.state();
-    return list.status === 'success'
-      ? list.bears.find((bear) => bear.id === this.id())
-      : undefined;
-  });
-
-  protected readonly intro = resource({
-    params: () => this.bear()?.name,
-    loader: async ({ params: title, abortSignal }) =>
-      await fetchArticleIntro(title, abortSignal),
+  protected readonly bear = resource({
+    params: () => this.id(),
+    loader: async ({ params: id, abortSignal }) =>
+      await getBear(id, abortSignal),
   });
 
   protected readonly paragraphs = computed(() =>
-    (this.intro.value() ?? '').split('\n').filter((line) => line.trim() !== '')
+    (this.bear.value()?.intro ?? '')
+      .split('\n')
+      .filter((line) => line.trim() !== '')
   );
+
+  protected readonly errorMessage = computed(() => {
+    const error = this.bear.error();
+    if (error instanceof ApiError && error.status === HTTP_NOT_FOUND) {
+      return `There is no bear with the identifier "${this.id()}".`;
+    }
+    return 'Sorry, this bear could not be loaded right now. Please try again later.';
+  });
 }

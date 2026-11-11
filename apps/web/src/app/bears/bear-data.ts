@@ -1,5 +1,6 @@
 import { computed, Injectable, resource } from '@angular/core';
-import { type Bear, loadBears } from './bear';
+import { getBears } from '../api/api-client';
+import type { Bear } from './bear';
 
 export type BearListState =
   | { status: 'loading' }
@@ -12,7 +13,7 @@ export class BearData {
   private readonly bears = resource({
     loader: async ({ abortSignal }) => {
       try {
-        return await loadBears(abortSignal);
+        return await getBears(abortSignal);
       } catch (err) {
         if (!abortSignal.aborted) {
           // eslint-disable-next-line no-console -- Deliberate debug logging
