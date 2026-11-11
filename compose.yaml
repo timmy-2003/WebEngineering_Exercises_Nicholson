@@ -1,0 +1,25 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      PORT: '3000'
+      WIKIPEDIA_BASE_URL: ${WIKIPEDIA_BASE_URL:-https://en.wikipedia.org}
+      USER_AGENT: ${USER_AGENT:-BearApp/0.1 (Web Engineering course playground)}
+      UPSTREAM_TIMEOUT_MS: ${UPSTREAM_TIMEOUT_MS:-5000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:4173}
+      APP_VERSION: ${APP_VERSION:-0.1.0}
+      ENABLE_DEBUG_ROUTES: 'false'
+    ports:
+      - '3000:3000'
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - '8080:80'
+    depends_on:
+      api:
+        condition: service_healthy

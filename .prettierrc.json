@@ -14,7 +14,7 @@
       }
     },
     {
-      "files": "src/**/*.html",
+      "files": "apps/web/src/**/*.html",
       "options": {
         "parser": "angular"
       }

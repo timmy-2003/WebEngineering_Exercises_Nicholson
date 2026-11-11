@@ -30,3 +30,5 @@ coverage
 .husky/_
 # Angular CLI build cache
 .angular
+
+.env

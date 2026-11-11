@@ -1,0 +1,9 @@
+**/node_modules
+**/dist
+**/.angular
+.git
+.github
+.husky
+.env
+docs
+*.pdf
