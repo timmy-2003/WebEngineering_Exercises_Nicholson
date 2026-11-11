@@ -1,41 +1,15 @@
-import { Writable } from 'node:stream';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 import { loadEnv } from '../src/schemas/env.js';
-import { z } from 'zod';
+import { captureLogs } from './capture-logs.js';
 import { fakeWikipedia } from './fake-wikipedia.js';
-
-const LogLine = z.looseObject({
-  reqId: z.string().optional(),
-  msg: z.string().optional(),
-  level: z.number().optional(),
-});
-type LogLine = z.infer<typeof LogLine>;
 
 let app: FastifyInstance | undefined;
 
 afterEach(async () => {
   await app?.close();
 });
-
-function captureLogs(): {
-  stream: Writable;
-  lines: LogLine[];
-} {
-  const lines: LogLine[] = [];
-  const stream = new Writable({
-    write(chunk: Buffer, _encoding, callback) {
-      for (const line of chunk.toString().split('\n')) {
-        if (line.trim() !== '') {
-          lines.push(LogLine.parse(JSON.parse(line)));
-        }
-      }
-      callback();
-    },
-  });
-  return { stream, lines };
-}
 
 describe('request logging', () => {
   it('writes one summary line per request with method, url, status and duration', async () => {

@@ -12,6 +12,7 @@ import {
   deleteComment,
   getComments,
   postComment,
+  userMessage,
 } from '../api/api-client';
 import { Highlight } from '../search/highlight';
 import type { Comment, CommentDraft } from './comment';
@@ -49,9 +50,7 @@ const HTTP_NOT_FOUND = 404;
           }
           @switch (loaded.status()) {
             @case ('error') {
-              <p class="error-message" role="alert">
-                Sorry, the comments could not be loaded right now.
-              </p>
+              <p class="error-message" role="alert">{{ loadError() }}</p>
             }
             @case ('loading') {
               <p role="status">Loading comments...</p>
@@ -86,6 +85,13 @@ export class CommentSection {
     () => this.loaded.value() ?? []
   );
 
+  protected readonly loadError = computed(() =>
+    userMessage(
+      this.loaded.error(),
+      'Sorry, the comments could not be loaded right now.'
+    )
+  );
+
   protected readonly toggleLabel = computed(() =>
     this.visible() ? 'Hide comments' : 'Show comments'
   );
@@ -106,9 +112,10 @@ export class CommentSection {
     } catch (err) {
       if (!(err instanceof ApiError && err.status === HTTP_NOT_FOUND)) {
         this.actionError.set(
-          err instanceof ApiError
-            ? err.detail
-            : 'The comment could not be deleted. Please try again.'
+          userMessage(
+            err,
+            'The comment could not be deleted. Please try again.'
+          )
         );
         return;
       }

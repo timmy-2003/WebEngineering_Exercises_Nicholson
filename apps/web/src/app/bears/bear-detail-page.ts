@@ -6,7 +6,7 @@ import {
   resource,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { ApiError, getBear } from '../api/api-client';
+import { ApiError, getBear, userMessage } from '../api/api-client';
 import { CommentSection } from '../comments/comment-section';
 import { Highlight } from '../search/highlight';
 import { BearCard } from './bear-card';
@@ -77,6 +77,9 @@ export class BearDetailPage {
     if (error instanceof ApiError && error.status === HTTP_NOT_FOUND) {
       return `There is no bear with the identifier "${this.id()}".`;
     }
-    return 'Sorry, this bear could not be loaded right now. Please try again later.';
+    return userMessage(
+      error,
+      'Sorry, this bear could not be loaded right now. Please try again later.'
+    );
   });
 }

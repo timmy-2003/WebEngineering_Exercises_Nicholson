@@ -1,5 +1,5 @@
 import { computed, Injectable, resource } from '@angular/core';
-import { getBears } from '../api/api-client';
+import { getBears, userMessage } from '../api/api-client';
 import type { Bear } from './bear';
 
 export type BearListState =
@@ -33,8 +33,10 @@ export class BearData {
       case 'error':
         return {
           status: 'error',
-          message:
-            'Sorry, we could not load the bear information right now. Please try again later.',
+          message: userMessage(
+            this.bears.error(),
+            'Sorry, we could not load the bear information right now. Please try again later.'
+          ),
         };
       case 'resolved':
       case 'local': {

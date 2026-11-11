@@ -1,20 +1,66 @@
 import type { Bear, BearDetail } from '../bears/bear';
 import type { Comment, CommentDraft } from '../comments/comment';
 
+export interface FieldError {
+  path: string;
+  message: string;
+}
+
+export interface ProblemInfo {
+  title: string;
+  detail: string;
+  requestId?: string;
+  errors?: readonly FieldError[];
+}
+
 export class ApiError extends Error {
+  readonly title: string;
+  readonly detail: string;
+  readonly requestId: string | undefined;
+  readonly errors: readonly FieldError[];
+
   constructor(
     readonly status: number,
-    readonly title: string,
-    readonly detail: string,
-    readonly requestId?: string
+    info: ProblemInfo
   ) {
+    const { title, detail, requestId, errors = [] } = info;
     super(detail);
     this.name = 'ApiError';
+    this.title = title;
+    this.detail = detail;
+    this.requestId = requestId;
+    this.errors = errors;
   }
+}
+
+export function userMessage(err: unknown, fallback: string): string {
+  if (!(err instanceof ApiError)) {
+    return fallback;
+  }
+  const fields = err.errors.map((field) => field.message).join('; ');
+  const reference =
+    err.requestId === undefined ? '' : ` (reference: ${err.requestId})`;
+  return `${err.detail}${fields === '' ? '' : ` ${fields}.`}${reference}`;
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+function isFieldError(value: unknown): value is FieldError {
+  return (
+    isObject(value) &&
+    typeof value['path'] === 'string' &&
+    typeof value['message'] === 'string'
+  );
+}
+
+function stringField(body: unknown, key: string): string | undefined {
+  if (!isObject(body)) {
+    return undefined;
+  }
+  const { [key]: value } = body;
+  return typeof value === 'string' ? value : undefined;
 }
 
 function isBear(value: unknown): value is Bear {
@@ -34,16 +80,19 @@ function isBearDetail(value: unknown): value is BearDetail {
 
 async function toApiError(res: Response): Promise<ApiError> {
   const body: unknown = await res.json().catch(() => null);
-  const requestId = res.headers.get('x-request-id') ?? undefined;
-  const title =
-    isObject(body) && typeof body['title'] === 'string'
-      ? body['title']
-      : res.statusText;
-  const detail =
-    isObject(body) && typeof body['detail'] === 'string'
-      ? body['detail']
-      : `Request failed (${res.status})`;
-  return new ApiError(res.status, title, detail, requestId);
+  const requestId =
+    res.headers.get('x-request-id') ??
+    stringField(body, 'instance')?.replace(/^urn:uuid:/v, '');
+  const errors =
+    isObject(body) && Array.isArray(body['errors'])
+      ? body['errors'].filter(isFieldError)
+      : [];
+  return new ApiError(res.status, {
+    title: stringField(body, 'title') ?? res.statusText,
+    detail: stringField(body, 'detail') ?? `Request failed (${res.status})`,
+    requestId,
+    errors,
+  });
 }
 
 async function send(path: string, init: RequestInit = {}): Promise<Response> {
@@ -72,11 +121,10 @@ function isComment(value: unknown): value is Comment {
 }
 
 function unexpectedShape(path: string): ApiError {
-  return new ApiError(
-    0,
-    'Unexpected response',
-    `The server sent an unexpected response for ${path}.`
-  );
+  return new ApiError(0, {
+    title: 'Unexpected response',
+    detail: `The server sent an unexpected response for ${path}.`,
+  });
 }
 
 export async function getBears(signal: AbortSignal): Promise<Bear[]> {

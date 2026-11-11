@@ -6,7 +6,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ApiError } from '../api/api-client';
+import { userMessage } from '../api/api-client';
 import type { CommentDraft } from './comment';
 
 @Component({
@@ -80,9 +80,7 @@ export class CommentForm {
       this.text.set('');
     } catch (err) {
       this.error.set(
-        err instanceof ApiError
-          ? err.detail
-          : 'Your comment could not be saved. Please try again.'
+        userMessage(err, 'Your comment could not be saved. Please try again.')
       );
     } finally {
       this.saving.set(false);
