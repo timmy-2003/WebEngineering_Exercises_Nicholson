@@ -1,4 +1,5 @@
 import type { Bear, BearDetail } from '../bears/bear';
+import type { Comment, CommentDraft } from '../comments/comment';
 
 export class ApiError extends Error {
   constructor(
@@ -45,15 +46,29 @@ async function toApiError(res: Response): Promise<ApiError> {
   return new ApiError(res.status, title, detail, requestId);
 }
 
-async function getJson(path: string, signal: AbortSignal): Promise<unknown> {
-  const res = await fetch(path, {
-    headers: { Accept: 'application/json' },
-    signal,
-  });
+async function send(path: string, init: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(init.headers);
+  headers.set('Accept', 'application/json');
+  const res = await fetch(path, { ...init, headers });
   if (!res.ok) {
     throw await toApiError(res);
   }
-  return await res.json();
+  return res;
+}
+
+async function getJson(path: string, signal: AbortSignal): Promise<unknown> {
+  return await (await send(path, { signal })).json();
+}
+
+function isComment(value: unknown): value is Comment {
+  return (
+    isObject(value) &&
+    typeof value['id'] === 'string' &&
+    typeof value['bearId'] === 'string' &&
+    typeof value['author'] === 'string' &&
+    typeof value['text'] === 'string' &&
+    typeof value['createdAt'] === 'string'
+  );
 }
 
 function unexpectedShape(path: string): ApiError {
@@ -87,4 +102,44 @@ export async function getBear(
     throw unexpectedShape(path);
   }
   return body;
+}
+
+const commentsPath = (bearId: string): string =>
+  `/api/bears/${encodeURIComponent(bearId)}/comments`;
+
+export async function getComments(
+  bearId: string,
+  signal: AbortSignal
+): Promise<Comment[]> {
+  const path = commentsPath(bearId);
+  const body = await getJson(path, signal);
+  if (
+    !isObject(body) ||
+    !Array.isArray(body['items']) ||
+    !body['items'].every(isComment)
+  ) {
+    throw unexpectedShape(path);
+  }
+  return body['items'];
+}
+
+export async function postComment(
+  bearId: string,
+  draft: CommentDraft
+): Promise<Comment> {
+  const path = commentsPath(bearId);
+  const res = await send(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(draft),
+  });
+  const body: unknown = await res.json();
+  if (!isComment(body)) {
+    throw unexpectedShape(path);
+  }
+  return body;
+}
+
+export async function deleteComment(id: string): Promise<void> {
+  await send(`/api/comments/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }

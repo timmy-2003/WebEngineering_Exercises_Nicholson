@@ -11,6 +11,7 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:4173}
       APP_VERSION: ${APP_VERSION:-0.1.0}
       ENABLE_DEBUG_ROUTES: 'false'
+      LOG_FORMAT: ${LOG_FORMAT:-pretty}
     ports:
       - '3000:3000'
 

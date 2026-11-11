@@ -60,6 +60,12 @@ describe('loadEnv', () => {
       UPSTREAM_TIMEOUT_MS: 5000,
       CORS_ORIGINS: ['http://localhost:4173'],
       ENABLE_DEBUG_ROUTES: false,
+      LOG_FORMAT: 'pretty',
     });
+  });
+
+  it('accepts LOG_FORMAT json and rejects unknown formats', () => {
+    expect(loadEnv({ LOG_FORMAT: 'json' }).LOG_FORMAT).toBe('json');
+    expect(() => loadEnv({ LOG_FORMAT: 'xml' })).toThrow(/LOG_FORMAT/v);
   });
 });

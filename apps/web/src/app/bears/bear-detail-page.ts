@@ -7,6 +7,7 @@ import {
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ApiError, getBear } from '../api/api-client';
+import { CommentSection } from '../comments/comment-section';
 import { Highlight } from '../search/highlight';
 import { BearCard } from './bear-card';
 
@@ -15,7 +16,7 @@ const HTTP_NOT_FOUND = 404;
 @Component({
   selector: 'app-bear-detail-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BearCard, Highlight, RouterLink],
+  imports: [BearCard, CommentSection, Highlight, RouterLink],
   host: { class: 'page' },
   template: `
     <article>
@@ -42,6 +43,8 @@ const HTTP_NOT_FOUND = 404;
             } @empty {
               <p>Wikipedia has no introduction for this bear.</p>
             }
+
+            <app-comment-section [bearId]="bear.id" [query]="q()" />
           }
         }
         @default {

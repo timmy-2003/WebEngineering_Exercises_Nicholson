@@ -1,8 +1,10 @@
 export interface CommentDraft {
-  name: string;
+  author: string;
   text: string;
 }
 
 export interface Comment extends CommentDraft {
-  id: number;
+  id: string;
+  bearId: string;
+  createdAt: string;
 }

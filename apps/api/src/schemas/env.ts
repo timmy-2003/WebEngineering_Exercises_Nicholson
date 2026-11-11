@@ -29,6 +29,7 @@ export const EnvSchema = z.object({
     ),
   APP_VERSION: z.string().min(1).optional(),
   ENABLE_DEBUG_ROUTES: z.stringbool().default(false),
+  LOG_FORMAT: z.enum(['pretty', 'json']).default('pretty'),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

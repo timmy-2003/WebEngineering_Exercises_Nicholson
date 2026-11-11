@@ -6,7 +6,6 @@ import {
 } from '@angular/core';
 import { BearData } from '../bears/bear-data';
 import { BearList } from '../bears/bear-list';
-import { CommentSection } from '../comments/comment-section';
 import { Highlight } from '../search/highlight';
 
 interface BearTypeRow {
@@ -21,7 +20,7 @@ interface BearTypeRow {
 @Component({
   selector: 'app-article-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [BearList, CommentSection, Highlight],
+  imports: [BearList, Highlight],
   host: { class: 'page' },
   templateUrl: './article-page.html',
 })
