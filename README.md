@@ -696,6 +696,25 @@ Add React (or another framework of your choice) to the existing Vite and TypeScr
 point to a React root. Preserve the build, linting, formatting, and CI setup from Playground 2, adapting scripts and
 configuration where necessary.
 
+> **What was set up (Angular instead of React):**
+>
+> - Added Angular 22 (`@angular/core`, `common`, `compiler`, `platform-browser`, `router`, `forms`) plus the Angular CLI
+>   builder `@angular/build`. Its dev server _is_ Vite (and production builds use esbuild), so the direct `vite`
+>   devDependency was removed rather than run side by side. Angular 22 supports TypeScript 6.0, so the `~6.0.3` pin from
+>   Playground 2 stays.
+> - Angular file conventions: `index.html` → `src/index.html` (now only contains `<app-root>`), `style.css` →
+>   `src/styles.css` (the old inline `<style>` rules moved there too), `media/` → `public/media/`. Build config lives in
+>   `angular.json`. `src/main.ts` calls `bootstrapApplication(App, appConfig)`, and from then on Angular owns everything
+>   inside `<app-root>`. The app is zoneless (Angular's default) and every component uses `OnPush` with signals.
+> - `tsconfig.json` keeps the strict options and adds Angular's `strictTemplates`, so templates are type-checked as
+>   well.
+> - Same script names as before: `dev` = `ng serve`, `build` = `ng build`, `typecheck` = `ngc -p tsconfig.json` (unlike
+>   plain `tsc`, this also type-checks templates), and `lint`/`lint:fix`/`format`/`format:check` are unchanged.
+> - ESLint keeps `eslint-config-love` for TypeScript and adds `angular-eslint` (component rules plus template and
+>   template-accessibility rules for `.html` files and inline templates). Prettier formats `src/**/*.html` with its
+>   `angular` parser, because the plain HTML parser doesn't understand `@if`/`@for`. lint-staged now covers `.html` too.
+>   The CI workflow needed no changes, since it only calls the script names.
+
 **Theory question:** Contrast imperative DOM updates with React's declarative model. What happens during React's render,
 reconciliation, and commit phases, and why should code outside React not modify DOM nodes owned by the React root? If
 you chose not to use React, answer the same questions in the context of your chosen framework.
@@ -704,6 +723,25 @@ you chose not to use React, answer the same questions in the context of your cho
 
 Decompose the interface into components organised by feature. Use props where appropriate, keep rendering pure, and
 render bear collections with stable keys.
+
+> **Component tree** (`src/app/`, by feature, standalone components with signal `input()`/`output()`):
+>
+> ```text
+> App (shell: header, nav + SearchForm, <router-outlet>, sidebar, footer)
+> ├── article/ArticlePage            route "/"
+> │   ├── comments/CommentSection
+> │   │   ├── CommentForm
+> │   │   └── CommentList
+> │   └── bears/BearList → BearCard (track bear.id)
+> ├── bears/BearDetailPage           route "/bears/:id" → BearCard
+> └── not-found/NotFoundPage         route "**"
+> search/Highlight is used throughout for highlightable text
+> ```
+>
+> Domain and API code (`bears/bear.ts`, `bears/wiki-api.ts`) has no Angular dependency. Rendering is pure: templates
+> only read inputs, signals, and `computed` values. Bears are tracked by `id`, a slug of the Wikipedia article title
+> (for example `giant-panda`), and comments by an id assigned when they are created. List position is never used as a
+> key.
 
 **Theory question:** Explain how component boundaries and typed props act as contracts. What makes a key stable, why
 does React need keys during reconciliation, and why is an array index unsuitable when list entries can change order?
@@ -714,6 +752,20 @@ Implement the comment toggle, comment form, and search behavior with React event
 immutable updates, and derived values rather than duplicate state. Lift state only to the closest common owner that
 needs it.
 
+> **State and interaction:**
+>
+> - **Comment toggle:** `CommentSection` holds a `visible` signal. The button label and `aria-expanded` are both derived
+>   from it.
+> - **Comment form:** `CommentForm` owns only the draft, as controlled inputs (`[(ngModel)]` bound to signals).
+>   `canSubmit` is a `computed` that requires both fields to be non-empty after trimming. A valid comment is passed up
+>   with an `output()`. The comment list itself is lifted to `CommentSection`, the closest common owner of the form and
+>   the list, and is updated immutably (`update(list => [...list, comment])`).
+> - **Search:** the submitted query is stored in the URL as `?q=`, which is the single source of truth. `SearchForm`
+>   keeps an editable draft (`linkedSignal`) that resets when the URL changes, for example on back/forward navigation.
+>   The old DOM-walking highlighter is gone. Text inside `<article>` is rendered through `<app-highlight>`, which
+>   derives matched and unmatched segments from the text and the query. Nothing outside `<article>` is highlighted, and
+>   no code modifies DOM that Angular owns.
+
 **Theory question:** Distinguish props, stored state, and derived values. Explain why direct mutation can produce
 incorrect React behavior and when lifting state is preferable to introducing context.
 
@@ -723,6 +775,19 @@ Load and validate the bear data within the React application. Represent loading,
 explicitly; prevent stale requests from overwriting newer results; and retain the image fallback behavior from
 Playground 1.
 
+> **Remote data:**
+>
+> - The root service `BearData` loads bears with Angular's `resource()`. The API layer validates every response from
+>   `unknown` (same approach as Playground 2), and every request takes an `AbortSignal`. `state` is an explicit union:
+>   `loading | error | empty | success`. `BearList` renders each case and offers a retry button on `error`.
+> - Stale results: `resource()` aborts the in-flight request when it is reloaded, when its parameters change, or when
+>   its owner is destroyed, and it discards superseded results. `BearDetailPage` loads the Wikipedia introduction with a
+>   resource keyed by the bear. Leaving the page, or switching to another bear, cancels the old request. A cancelled
+>   image lookup is passed on as a cancellation instead of being turned into a placeholder.
+> - Image fallback: if the API has no image, the placeholder SVG is used. If the browser fails to load the image URL,
+>   `BearCard`'s `(error)` handler switches to the placeholder.
+> - The range is now actually extracted from the wikitext, replacing the old `TODO`.
+
 **Theory question:** Why is fetching data a synchronization with an external system rather than part of pure rendering?
 Explain how cleanup or cancellation prevents race conditions when a component unmounts or a request becomes irrelevant.
 
@@ -731,6 +796,26 @@ Explain how cleanup or cancellation prevents race conditions when a component un
 Add at least a list route and a bear-detail route using a stable bear identifier as a route parameter. Use query
 parameters for optional search/filter view state where appropriate. Verify that every requirement from Playground 1
 still works and that all Playground 2 quality commands pass.
+
+> **Routing** (`app.routes.ts`, `provideRouter(routes, withComponentInputBinding())`):
+>
+> - `/`: the article with the bear list. `/bears/:id` (lazy-loaded): the bear card plus its Wikipedia introduction.
+>   `**`: not-found page. Unknown bear ids show a message.
+> - `?q=` is optional view state. It is bound straight into the page's `q` input and kept when moving between list and
+>   detail (`queryParamsHandling="preserve"`).
+>
+> **Verified:** `npm run typecheck`, `lint`, `format:check`, and `build` all pass. A headless-Chrome run against
+> `npm run dev` confirmed:
+>
+> - all 8 bears appear in Wikipedia order with no duplicates, each with name, scientific name, range, and image
+> - the image falls back to the placeholder when it fails to load
+> - the comment toggle works, and empty or whitespace-only comments are rejected
+> - comments append, and the form clears afterwards
+> - search highlights case-insensitively and only inside `<article>`
+> - links to the detail page work and keep `?q=`
+> - leaving a detail page cancels its pending request
+> - back navigation restores the search box
+> - there are no console errors
 
 **Theory question:** Distinguish client-side rendering, a single-page application, and client-side routing. Compare
 route parameters with query parameters, and describe one benefit and one cost of the SPA architecture used here.

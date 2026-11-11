@@ -280,3 +280,31 @@ audio {
 .comment-container li p:nth-child(2) {
   flex: 5;
 }
+
+/* || Previously inline in index.html */
+
+body {
+  font-family: Arial, sans-serif;
+}
+
+.highlight {
+  background-color: yellow;
+  color: black;
+}
+
+/* || Routed pages
+   A routed component's host element sits between <main> and its <article>. `display: contents`
+   removes the host box from layout, so the <article> stays the flex item the layout expects. */
+
+.page {
+  display: contents;
+}
+
+.retry {
+  background: #333;
+  border: 0;
+  color: white;
+  font-size: 1.6rem;
+  line-height: 32px;
+  padding: 0 1rem;
+}

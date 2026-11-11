@@ -1,0 +1,90 @@
+<article>
+  <font size="6"
+    ><app-highlight text="The trouble with Bears" [query]="q()"
+  /></font>
+  <br /><br />
+  <app-highlight text="By Evan Wild" [query]="q()" />
+  <br /><br />
+  <app-highlight
+    text="Tall, lumbering, angry, dangerous. The real live bears of this world are proud, independent creatures, self-serving and always on the hunt for food."
+    [query]="q()"
+  />
+  <br /><br />
+  <font size="5"><app-highlight text="Types of bear" [query]="q()" /></font>
+  <br /><br />
+  <table>
+    <thead>
+      <tr>
+        @for (heading of tableHeadings; track heading) {
+          <td><app-highlight [text]="heading" [query]="q()" /></td>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of bearTypes; track row.type) {
+        <tr>
+          <td><app-highlight [text]="row.type" [query]="q()" /></td>
+          <td><app-highlight [text]="row.coat" [query]="q()" /></td>
+          <td><app-highlight [text]="row.size" [query]="q()" /></td>
+          <td><app-highlight [text]="row.habitat" [query]="q()" /></td>
+          <td><app-highlight [text]="row.lifespan" [query]="q()" /></td>
+          <td><app-highlight [text]="row.diet" [query]="q()" /></td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  <font size="5"
+    ><app-highlight text="Habitats and Eating habits" [query]="q()"
+  /></font>
+  <br /><br />
+  <app-highlight
+    text="Wild bears eat a variety of meat, fish, fruit, nuts, and other natually growing ingredients..."
+    [query]="q()"
+  />
+  <br /><br />
+  <img src="media/wild-bear.jpg" alt="Wild bear in forest" />
+  <br /><br />
+  <app-highlight
+    text="Urban (gentrified) bears on the other hand have largely abandoned the old ways..."
+    [query]="q()"
+  />
+  <br /><br />
+  <img src="media/urban-bear.jpg" alt="Urban bear near buildings" />
+  <br /><br />
+
+  <font size="5"><app-highlight text="Mating rituals" [query]="q()" /></font>
+  <br /><br />
+  <app-highlight
+    text="Bears are romantic creatures by nature..."
+    [query]="q()"
+  />
+  <br /><br />
+  <audio controls>
+    <source src="media/bear.mp3" type="audio/mp3" />
+    <source src="media/bear.ogg" type="audio/ogg" />
+    <p>It looks like your browser doesn't support HTML5 audio players.</p>
+  </audio>
+
+  <aside>
+    <font size="5"
+      ><app-highlight text="About the author" [query]="q()"
+    /></font>
+    <br /><br />
+    <app-highlight
+      text="Evan Wild is an unemployed plumber from Doncaster..."
+      [query]="q()"
+    />
+  </aside>
+
+  <app-comment-section [query]="q()" />
+
+  <section class="more_bears">
+    <font size="5"><app-highlight text="More Bears" [query]="q()" /></font>
+    <app-bear-list
+      [state]="bearData.state()"
+      [query]="q()"
+      (retry)="bearData.reload()"
+    />
+  </section>
+</article>

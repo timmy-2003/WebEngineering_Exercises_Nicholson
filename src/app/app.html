@@ -1,0 +1,33 @@
+<div class="header">
+  <font size="7">Welcome to our wildlife website</font>
+</div>
+
+<div class="nav">
+  <ul>
+    <li><a routerLink="/">Home</a></li>
+    <li><a href="#">Our team</a></li>
+    <li><a href="#">Projects</a></li>
+    <li><a href="#">Blog</a></li>
+  </ul>
+
+  <app-search-form />
+</div>
+
+<main>
+  <router-outlet />
+
+  <div class="secondary">
+    <font size="6">Related</font>
+    <ul>
+      @for (article of relatedArticles; track article) {
+        <li>
+          <a href="#">{{ article }}</a>
+        </li>
+      }
+    </ul>
+  </div>
+</main>
+
+<footer>
+  <p>©Copyright 2050 by nobody. All rights reversed.</p>
+</footer>

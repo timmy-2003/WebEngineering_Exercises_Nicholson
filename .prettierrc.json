@@ -12,6 +12,12 @@
         "proseWrap": "always",
         "printWidth": 120
       }
+    },
+    {
+      "files": "src/**/*.html",
+      "options": {
+        "parser": "angular"
+      }
     }
   ]
 }
