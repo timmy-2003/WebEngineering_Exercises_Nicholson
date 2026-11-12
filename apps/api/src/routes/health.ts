@@ -1,5 +1,6 @@
 import type { FastifyPluginCallbackZod } from 'fastify-type-provider-zod';
 import { z } from 'zod';
+import { problemResponses } from '../schemas/problem.js';
 
 const Health = z.object({
   status: z.literal('ok'),
@@ -14,7 +15,7 @@ export const healthRoutes: FastifyPluginCallbackZod = (app, _opts, done) => {
       schema: {
         tags: ['health'],
         summary: 'Liveness check',
-        response: { 200: Health },
+        response: { 200: Health, ...problemResponses('internal') },
       },
     },
     () => ({

@@ -1,5 +1,6 @@
 import type { Bear, BearDetail } from '../bears/bear';
 import type { Comment, CommentDraft } from '../comments/comment';
+import { API_BASE_URL } from './api-base-url';
 
 export interface FieldError {
   path: string;
@@ -98,7 +99,7 @@ async function toApiError(res: Response): Promise<ApiError> {
 async function send(path: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers);
   headers.set('Accept', 'application/json');
-  const res = await fetch(path, { ...init, headers });
+  const res = await fetch(`${API_BASE_URL}${path}`, { ...init, headers });
   if (!res.ok) {
     throw await toApiError(res);
   }

@@ -45,6 +45,14 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+            },
+            "cross-origin": {
+              "fileReplacements": [
+                {
+                  "replace": "src/app/api/api-base-url.ts",
+                  "with": "src/app/api/api-base-url.cross-origin.ts"
+                }
+              ]
             }
           },
           "defaultConfiguration": "production"

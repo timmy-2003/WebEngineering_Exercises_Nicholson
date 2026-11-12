@@ -47,5 +47,8 @@
     "lint-staged": "^17.6.0",
     "prettier": "^3.9.9",
     "typescript": "~6.0.3"
+  },
+  "overrides": {
+    "minimatch": "11.0.1"
   }
 }

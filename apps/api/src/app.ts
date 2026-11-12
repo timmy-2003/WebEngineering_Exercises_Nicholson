@@ -1,10 +1,14 @@
 import { randomUUID } from 'node:crypto';
+import cors from '@fastify/cors';
+import swagger from '@fastify/swagger';
+import swaggerUi from '@fastify/swagger-ui';
 import Fastify, {
   type FastifyInstance,
   type FastifyReply,
   type FastifyServerOptions,
 } from 'fastify';
 import {
+  jsonSchemaTransform,
   serializerCompiler,
   validatorCompiler,
   type ZodTypeProvider,
@@ -15,6 +19,7 @@ import {
   toProblem,
   UpstreamThrottledError,
 } from './errors.js';
+import { transformObject } from './openapi.js';
 import { configPlugin } from './plugins/config.js';
 import {
   describeError,
@@ -31,6 +36,7 @@ import { createCommentService } from './services/comment-service.js';
 import { createWikipediaClient } from './upstream/wikipedia.js';
 
 const HTTP_INTERNAL_SERVER_ERROR = 500;
+const CORS_MAX_AGE_SECONDS = 600;
 const REQUEST_ID_HEADER = 'x-request-id';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iv;
 
@@ -100,6 +106,34 @@ export async function buildApp(
   );
 
   await app.register(configPlugin, { env: options.env });
+
+  await app.register(cors, {
+    origin: options.env.CORS_ORIGINS,
+    methods: ['GET', 'POST', 'DELETE'],
+    allowedHeaders: ['content-type', REQUEST_ID_HEADER],
+    exposedHeaders: ['location', REQUEST_ID_HEADER],
+    credentials: false,
+    maxAge: CORS_MAX_AGE_SECONDS,
+  });
+
+  // Registered before the routes so that it sees every route schema.
+  await app.register(swagger, {
+    openapi: {
+      openapi: '3.1.0',
+      info: {
+        title: 'Bear API',
+        version: options.env.APP_VERSION ?? 'dev',
+      },
+      tags: [
+        { name: 'bears', description: 'Bear species from Wikipedia' },
+        { name: 'comments', description: 'Comments on a bear' },
+        { name: 'health', description: 'Operations' },
+      ],
+    },
+    transform: jsonSchemaTransform,
+    transformObject,
+  });
+  await app.register(swaggerUi, { routePrefix: '/api/docs' });
   app.decorate(
     'bearService',
     createBearService(

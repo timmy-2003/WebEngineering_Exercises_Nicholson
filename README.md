@@ -22,6 +22,7 @@ The project introduces a lot of code smells for you to tackle. **Let's get codin
 - [1st Playground](#1-js-playground): 14.09.2026
 - [2nd Playground](#2-dependency--and-build-management-playground): 28.09.2026
 - [3rd Playground](#3-migrate-to-a-frontend-framework): 04.10.2026
+- [4th Playground](#4-http-api-design-and-the-bff): 12.11.2026
 - other Playgrounds TBA by Thomas Berger
 
 ## Features
@@ -819,6 +820,134 @@ still works and that all Playground 2 quality commands pass.
 
 **Theory question:** Distinguish client-side rendering, a single-page application, and client-side routing. Compare
 route parameters with query parameters, and describe one benefit and one cost of the SPA architecture used here.
+
+## 4. HTTP, API Design and the BFF
+
+The bear app gets its own backend: a Fastify API (`apps/api`) acts as a Backend for Frontend for the Angular app
+(`apps/web`). It owns all Wikipedia access, stores comments, and speaks one error format.
+
+**Run it**
+
+| Command                                                          | What it does                                                                                     |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `npm ci`                                                         | install both workspaces from the single root lockfile                                            |
+| `npm run dev`                                                    | API on `:3000` (`tsx watch`) + web on `:4200` (`ng serve`), both with hot reload; `/api` proxied |
+| `docker compose up --build`                                      | API on `:3000`, web (nginx) on `:8080`                                                           |
+| `npm run lint` / `typecheck` / `format:check` / `test` / `build` | the quality commands, run for every workspace                                                    |
+
+Optional: copy `.env.example` to `.env` (gitignored) and put your contact details into `USER_AGENT`.
+
+### Tasks
+
+#### Task 1: Set up the API workspace
+
+npm workspaces `apps/web` and `apps/api` (Fastify, TypeScript strict, ESM); `GET /health` returns JSON with status,
+version and uptime; Dockerfile for both apps and `compose.yaml`; `npm run dev` with hot reload and an `/api` proxy;
+ESLint, Prettier, Husky and CI extended to both workspaces.
+
+**Theory question:** Node's event loop: why does one slow synchronous operation delay every request? What is a health
+endpoint for, and who calls it?
+
+> **Answer:**
+>
+> Node runs all JavaScript on one thread. The event loop takes the next callback only when the current one is finished.
+> While I/O (sockets, files, `fetch`) waits in the background, a synchronous operation (a large `JSON.parse`, a
+> CPU-heavy loop, `readFileSync`) blocks the thread. No other request is handled during that time, not even `/health`.
+> Slow work therefore has to stay asynchronous or move to a worker thread.
+>
+> A health endpoint tells a machine whether the process is alive and able to answer. It is called by orchestrators and
+> load balancers (Docker or Kubernetes probes, which restart the container or take it out of rotation) and by uptime
+> monitors. It is kept cheap and does not call Wikipedia, so a slow upstream does not mark the API as dead.
+
+#### Task 2: Move the Wikipedia call behind a BFF
+
+`GET /api/bears` and `GET /api/bears/:id`, fetched and parsed server-side; descriptive `User-Agent` and a timeout on the
+upstream call; normalised, typed `Bear` (id = stable slug of the binomial name), validated with zod; upstream failure
+gives 502 or 504, never an empty list; the browser no longer talks to Wikipedia.
+
+**Theory question:** What is a BFF, and what moves from the browser to the server? Why is an empty 200 on upstream
+failure worse than a 502?
+
+> **Answer:**
+>
+> A Backend for Frontend is a small server that belongs to one frontend and gives it exactly the API it needs. Here, the
+> Wikipedia URL, the `User-Agent`, the timeout, parsing the HTML table into `Bear` objects and validating it with zod
+> all moved from the browser to `apps/api`. The browser only calls `/api/bears`. It is smaller, cannot break when
+> Wikipedia changes its markup, and does not need CORS for a third party.
+>
+> An empty `200` is a lie. It says "there are no bears", so the UI shows an empty list, a cache may store it, and
+> monitoring sees success. A `502` says "the data source failed". The UI can show an error with "Try again", clients and
+> caches know not to trust it, and the error rate shows up in the logs.
+
+#### Task 3: Design the comments API
+
+`GET` and `POST /api/bears/:id/comments`, `DELETE /api/comments/:commentId`; POST answers 201 Created with `Location`,
+DELETE answers 204 No Content; zod validation (400 for invalid input, 404 for unknown bears or comments); in-memory
+storage (a `Map`); the comment section of the web app is connected.
+
+**Theory question:** Safe, idempotent, cacheable methods. Why POST for creating, why must DELETE be idempotent, what
+happens when a client retries a POST?
+
+> **Answer:**
+>
+> - **Safe** methods (`GET`, `HEAD`, `OPTIONS`) do not change server state.
+> - **Idempotent** methods (the safe ones plus `PUT` and `DELETE`) leave the same state whether they are sent once or
+>   several times.
+> - **Cacheable** responses are mainly those to `GET` and `HEAD`.
+>
+> `POST` creates because the server decides the new resource's id and URI, which it returns in `Location`, and each call
+> is meant to create something new. `DELETE` must be idempotent so that a client or proxy can safely retry it after a
+> timeout. A second `DELETE` returns `404` here, but the state is the same: the comment is gone. A retried `POST`
+> creates a duplicate comment, because the server cannot tell a retry from a new request. Avoiding that needs an
+> `Idempotency-Key` header that the server remembers.
+
+#### Task 4: One error format for everything
+
+Typed error classes and one Fastify error handler rendering RFC 9457 `application/problem+json`; 400 with an `errors`
+array, 404, 502 or 504, and 500 without stack trace or internals; request id `x-request-id` (generated or taken over) in
+the response, the log line and `instance`; the frontend parses problem responses and shows `detail`.
+
+**Theory question:** Why exactly one error contract? Which information must never leave the server, and how do request
+ids connect a complaint to a log line?
+
+> **Answer:**
+>
+> With one contract, a client needs exactly one error parser. The web app's `ApiError` handles a 400, a 404 and a 502
+> the same way, whether the error came from a route, from Fastify or from the not-found handler. The `type` URI says
+> what happened and `detail` says it in words.
+>
+> Stack traces, exception messages, file paths, upstream URLs and hostnames, SQL and configuration must never leave the
+> server. They help attackers and mean nothing to users. A 5xx therefore has fixed text, and the details stay in the
+> log.
+>
+> Every request gets an id, which goes out in `x-request-id` and in `instance`, and into every log line as `reqId`. The
+> UI shows it as "(reference: …)". When someone reports an error with that reference, searching the log for it finds the
+> exact request and its stack trace.
+
+#### Task 5: CORS and the API contract
+
+CORS with an exact origin allow-list for a cross-origin frontend; an OpenAPI 3.1 document generated from the zod route
+schemas, including the Problem Details responses, served with Swagger UI.
+
+**Theory question:** Who enforces CORS? Simple vs preflighted requests? Why no `*` with credentials, and why does a BFF
+make most CORS problems disappear?
+
+> **Answer:**
+>
+> The browser enforces CORS, not the server. The server only sends `Access-Control-*` headers. curl ignores them, and
+> the server answers an unknown origin anyway, as the demo above shows. The browser then decides whether page JavaScript
+> may read the response. CORS protects users' browsers; it is not access control for the API.
+>
+> A **simple** request (`GET`, `HEAD` or `POST`, only safelisted headers, and a body type such as `text/plain` or form
+> data) is sent directly; only reading the response is checked. Anything else, such as `DELETE`, a JSON `POST` or a
+> custom header, first needs a **preflight**: an `OPTIONS` request asking whether the method and headers are allowed.
+> `maxAge` caches that answer.
+>
+> With credentials (cookies), a `*` would let any website send requests in the user's name and read the answers.
+> Browsers therefore reject `*` together with credentials, and the server must name the exact origin.
+>
+> A BFF is normally served from the same origin as the frontend (nginx or the dev proxy sends `/api` to it). Same origin
+> means no CORS at all, and the call to the third party (Wikipedia) happens server to server, where CORS does not apply.
 
 ---
 

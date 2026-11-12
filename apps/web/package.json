@@ -10,7 +10,8 @@
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "format": "prettier --write src",
-    "format:check": "prettier --check src"
+    "format:check": "prettier --check src",
+    "preview:cross-origin": "ng build --configuration production,cross-origin && sirv dist/browser --port 4173 --single"
   },
   "dependencies": {
     "@angular/common": "^22.2.5",
@@ -25,6 +26,7 @@
   "devDependencies": {
     "@angular/build": "^22.2.6",
     "@angular/cli": "^22.2.6",
-    "@angular/compiler-cli": "^22.2.5"
+    "@angular/compiler-cli": "^22.2.5",
+    "sirv-cli": "^3.0.1"
   }
 }
