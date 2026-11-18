@@ -18,6 +18,9 @@
     "format": "npm run format --workspaces --if-present",
     "format:check": "npm run format:check --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
+    "db:generate": "npm run db:generate -w apps/api --",
+    "db:migrate": "npm run db:migrate -w apps/api",
+    "db:seed": "npm run db:seed -w apps/api",
     "prepare": "husky"
   },
   "author": "Timothy Nicholson",

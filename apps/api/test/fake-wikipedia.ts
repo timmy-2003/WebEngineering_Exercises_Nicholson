@@ -22,7 +22,7 @@ export type FakeReply =
 export interface FakeWikipediaOptions {
   parse?: FakeReply;
   images?: FakeReply;
-  intro?: FakeReply;
+  intro?: FakeReply | ((title: string) => FakeReply);
 }
 
 export interface RecordedCall {
@@ -79,10 +79,9 @@ export function fakeWikipedia(options: FakeWikipediaOptions = {}): {
       return await reply(options.images ?? { body: imageInfoFixture });
     }
     if (searchParams.get('prop') === 'extracts') {
-      return await reply(
-        options.intro ??
-          introReply(searchParams.get('titles') ?? '', 'An intro.')
-      );
+      const title = searchParams.get('titles') ?? '';
+      const { intro = introReply(title, 'An intro.') } = options;
+      return await reply(typeof intro === 'function' ? intro(title) : intro);
     }
     return await reply({ status: 404 });
   };

@@ -15,6 +15,7 @@ COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 RUN npm ci --omit=dev --ignore-scripts -w apps/api && npm cache clean --force
 COPY --from=build /app/apps/api/dist apps/api/dist
+COPY apps/api/drizzle apps/api/drizzle
 WORKDIR /app/apps/api
 USER node
 EXPOSE 3000

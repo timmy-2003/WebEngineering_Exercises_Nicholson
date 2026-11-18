@@ -13,12 +13,7 @@ import {
   validatorCompiler,
   type ZodTypeProvider,
 } from 'fastify-type-provider-zod';
-import {
-  AppError,
-  RouteNotFoundError,
-  toProblem,
-  UpstreamThrottledError,
-} from './errors.js';
+import { AppError, RouteNotFoundError, toProblem } from './errors.js';
 import { transformObject } from './openapi.js';
 import { configPlugin } from './plugins/config.js';
 import {
@@ -29,11 +24,11 @@ import { bearRoutes } from './routes/bears.js';
 import { commentRoutes } from './routes/comments.js';
 import { debugRoutes } from './routes/debug.js';
 import { healthRoutes } from './routes/health.js';
+import type { Repos } from './repositories/types.js';
 import type { Env } from './schemas/env.js';
 import type { Problem } from './schemas/problem.js';
 import { createBearService } from './services/bear-service.js';
 import { createCommentService } from './services/comment-service.js';
-import { createWikipediaClient } from './upstream/wikipedia.js';
 
 const HTTP_INTERNAL_SERVER_ERROR = 500;
 const CORS_MAX_AGE_SECONDS = 600;
@@ -42,7 +37,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iv;
 
 export interface BuildAppOptions {
   env: Env;
-  fetch?: typeof globalThis.fetch;
+  repos: Repos;
   ping: () => Promise<void>;
   logger?: FastifyServerOptions['logger'];
 }
@@ -92,9 +87,6 @@ export async function buildApp(
         req.log.error({ err }, 'request failed');
       }
     }
-    if (err instanceof UpstreamThrottledError) {
-      void reply.header('retry-after', String(err.retryAfterSeconds));
-    }
     return await sendProblem(reply, problem);
   });
 
@@ -126,7 +118,7 @@ export async function buildApp(
         version: options.env.APP_VERSION ?? 'dev',
       },
       tags: [
-        { name: 'bears', description: 'Bear species from Wikipedia' },
+        { name: 'bears', description: 'Bear species (seeded from Wikipedia)' },
         { name: 'comments', description: 'Comments on a bear' },
         { name: 'health', description: 'Operations' },
       ],
@@ -135,13 +127,7 @@ export async function buildApp(
     transformObject,
   });
   await app.register(swaggerUi, { routePrefix: '/api/docs' });
-  app.decorate(
-    'bearService',
-    createBearService(
-      createWikipediaClient(options.env, options.fetch ?? globalThis.fetch),
-      app.log
-    )
-  );
+  app.decorate('bearService', createBearService(options.repos.bears));
   app.decorate('commentStore', createCommentService(app.bearService));
 
   await app.register(healthRoutes, { ping: options.ping });

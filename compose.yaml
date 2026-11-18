@@ -30,10 +30,29 @@ services:
       ENABLE_DEBUG_ROUTES: 'false'
       LOG_FORMAT: ${LOG_FORMAT:-pretty}
       DATABASE_URL: postgres://${POSTGRES_USER:-bears}:${POSTGRES_PASSWORD:-bears}@db:5432/${POSTGRES_DB:-bears}
+      MIGRATE_ON_START: 'true'
     ports:
       - '3000:3000'
     depends_on:
       db:
+        condition: service_healthy
+
+  seed:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    command: ['node', 'dist/scripts/seed.js']
+    environment:
+      WIKIPEDIA_BASE_URL: ${WIKIPEDIA_BASE_URL:-https://en.wikipedia.org}
+      USER_AGENT: ${USER_AGENT:-BearApp/0.1 (Web Engineering course playground)}
+      UPSTREAM_TIMEOUT_MS: ${UPSTREAM_TIMEOUT_MS:-5000}
+      LOG_FORMAT: ${LOG_FORMAT:-pretty}
+      DATABASE_URL: postgres://${POSTGRES_USER:-bears}:${POSTGRES_PASSWORD:-bears}@db:5432/${POSTGRES_DB:-bears}
+    healthcheck:
+      disable: true
+    restart: 'no'
+    depends_on:
+      api:
         condition: service_healthy
 
   web:

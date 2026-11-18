@@ -21,9 +21,7 @@ const HTTP_BAD_REQUEST = 400;
 const HTTP_NOT_FOUND = 404;
 const HTTP_UNSUPPORTED_MEDIA_TYPE = 415;
 const HTTP_INTERNAL_SERVER_ERROR = 500;
-const HTTP_BAD_GATEWAY = 502;
 const HTTP_SERVICE_UNAVAILABLE = 503;
-const HTTP_GATEWAY_TIMEOUT = 504;
 
 const PROBLEM_RESPONSES = {
   validation: [HTTP_BAD_REQUEST, 'Invalid request (validation)'],
@@ -33,15 +31,6 @@ const PROBLEM_RESPONSES = {
     'Body is not application/json',
   ],
   internal: [HTTP_INTERNAL_SERVER_ERROR, 'Internal error'],
-  upstream: [HTTP_BAD_GATEWAY, 'Wikipedia failed or answered unexpectedly'],
-  'upstream-throttled': [
-    HTTP_SERVICE_UNAVAILABLE,
-    'Wikipedia throttled the request (see Retry-After)',
-  ],
-  'upstream-timeout': [
-    HTTP_GATEWAY_TIMEOUT,
-    'Wikipedia did not answer in time',
-  ],
   'database-unavailable': [
     HTTP_SERVICE_UNAVAILABLE,
     'The database did not answer the readiness query',
@@ -73,9 +62,3 @@ export function problemResponses(
     })
   );
 }
-
-export const UPSTREAM_PROBLEMS = [
-  'upstream',
-  'upstream-throttled',
-  'upstream-timeout',
-] as const satisfies readonly ProblemType[];

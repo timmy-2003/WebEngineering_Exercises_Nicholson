@@ -3,7 +3,10 @@ import type { FastifyInstance } from 'fastify';
 import { testApp } from './helpers.js';
 import { loadEnv } from '../src/schemas/env.js';
 import { captureLogs } from './capture-logs.js';
-import { fakeWikipedia } from './fake-wikipedia.js';
+
+const refused = async (): Promise<void> => {
+  await Promise.reject(new Error('connect ECONNREFUSED 127.0.0.1:5432'));
+};
 
 let app: FastifyInstance | undefined;
 
@@ -16,7 +19,6 @@ describe('request logging', () => {
     const { stream, lines } = captureLogs();
     app = await testApp({
       env: loadEnv({}),
-      fetch: fakeWikipedia().fetch,
       logger: { level: 'info', stream },
     });
 
@@ -35,20 +37,23 @@ describe('request logging', () => {
     expect(line?.msg).toMatch(/^GET \/api\/bears 200 \d+ms$/v);
   });
 
-  it('logs a known upstream failure as one short error line plus the summary', async () => {
+  it('logs a known failure as one short error line plus the summary', async () => {
     const { stream, lines } = captureLogs();
     app = await testApp({
       env: loadEnv({}),
-      fetch: fakeWikipedia({ parse: new TypeError('fetch failed') }).fetch,
+      ping: refused,
       logger: { level: 'info', stream },
     });
 
-    await app.inject({ method: 'GET', url: '/api/bears' });
+    await app.inject({ method: 'GET', url: '/health/ready' });
 
     const requestLines = lines.filter((line) => 'reqId' in line);
     expect(requestLines.map((line) => [line.level, line.msg])).toEqual([
-      [50, 'UpstreamError: Wikipedia could not be reached (fetch failed)'],
-      [50, expect.stringMatching(/^GET \/api\/bears 502 \d+ms$/v)],
+      [
+        50,
+        'DatabaseUnavailableError: database ping failed (connect ECONNREFUSED 127.0.0.1:5432)',
+      ],
+      [50, expect.stringMatching(/^GET \/health\/ready 503 \d+ms$/v)],
     ]);
     expect(JSON.stringify(requestLines)).not.toContain('stack');
   });
@@ -57,7 +62,6 @@ describe('request logging', () => {
     const { stream, lines } = captureLogs();
     app = await testApp({
       env: loadEnv({}),
-      fetch: fakeWikipedia().fetch,
       logger: { level: 'info', stream },
     });
 
@@ -71,7 +75,6 @@ describe('request logging', () => {
     const { stream, lines } = captureLogs();
     app = await testApp({
       env: loadEnv({}),
-      fetch: fakeWikipedia().fetch,
       logger: { level: 'info', stream },
     });
 

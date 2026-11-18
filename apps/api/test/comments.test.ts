@@ -3,14 +3,13 @@ import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
 import { testApp } from './helpers.js';
 import { Comment, CommentList } from '../src/schemas/comment.js';
 import { loadEnv } from '../src/schemas/env.js';
-import { fakeWikipedia } from './fake-wikipedia.js';
 
 const env = loadEnv({ USER_AGENT: 'BearApp/0.1 (test)' });
 
 let app: FastifyInstance;
 
 beforeEach(async () => {
-  app = await testApp({ env, fetch: fakeWikipedia().fetch });
+  app = await testApp({ env });
 });
 
 afterEach(async () => {
@@ -122,7 +121,7 @@ describe('GET /api/bears/:id/comments', () => {
   it('keeps comments per bear', async () => {
     await post('ursus-arctos', { author: 'Ada', text: 'brown' });
 
-    expect(await list('ursus-maritimus')).toEqual([]);
+    expect(await list('ailuropoda-melanoleuca')).toEqual([]);
   });
 
   it('is 404 for an unknown bear', async () => {

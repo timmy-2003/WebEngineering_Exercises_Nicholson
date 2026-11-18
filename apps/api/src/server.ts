@@ -1,5 +1,6 @@
 import { buildApp } from './app.js';
 import { createDatabase } from './db/database.js';
+import { createDrizzleRepos } from './repositories/drizzle.js';
 import { loggerOptions } from './plugins/request-logging.js';
 import { loadEnv } from './schemas/env.js';
 
@@ -8,6 +9,7 @@ const database = createDatabase(env);
 const app = await buildApp({
   env,
   logger: loggerOptions(env.LOG_FORMAT),
+  repos: createDrizzleRepos(database.db),
   ping: database.ping,
 });
 database.onIdleClientError((err) => {

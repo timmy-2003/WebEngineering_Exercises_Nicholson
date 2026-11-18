@@ -48,11 +48,10 @@ export const healthRoutes: FastifyPluginCallbackZod<HealthRoutesOptions> = (
         },
       },
     },
-    async (req) => {
+    async () => {
       try {
         await ping();
       } catch (err) {
-        req.log.warn({ err }, 'readiness check failed');
         throw new DatabaseUnavailableError('database ping failed', {
           cause: err,
         });

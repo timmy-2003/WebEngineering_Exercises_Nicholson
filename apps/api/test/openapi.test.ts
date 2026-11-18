@@ -3,7 +3,6 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { testApp } from './helpers.js';
 import { loadEnv } from '../src/schemas/env.js';
-import { fakeWikipedia } from './fake-wikipedia.js';
 
 const env = loadEnv({ USER_AGENT: 'BearApp/0.1 (test)' });
 
@@ -23,7 +22,7 @@ let text: string;
 let doc: z.infer<typeof OpenApiDocument>;
 
 beforeAll(async () => {
-  app = await testApp({ env, fetch: fakeWikipedia().fetch });
+  app = await testApp({ env });
   const res = await app.inject({ method: 'GET', url: '/api/docs/json' });
   expect(res.statusCode).toBe(200);
   ({ body: text } = res);

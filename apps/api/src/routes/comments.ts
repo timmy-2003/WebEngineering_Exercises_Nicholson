@@ -7,7 +7,7 @@ import {
   CommentList,
   NewComment,
 } from '../schemas/comment.js';
-import { problemResponses, UPSTREAM_PROBLEMS } from '../schemas/problem.js';
+import { problemResponses } from '../schemas/problem.js';
 
 const HTTP_CREATED = 201;
 const HTTP_NO_CONTENT = 204;
@@ -22,12 +22,7 @@ export const commentRoutes: FastifyPluginCallbackZod = (app, _opts, done) => {
         params: BearIdParams,
         response: {
           200: CommentList,
-          ...problemResponses(
-            'validation',
-            'not-found',
-            'internal',
-            ...UPSTREAM_PROBLEMS
-          ),
+          ...problemResponses('validation', 'not-found', 'internal'),
         },
       },
     },
@@ -51,8 +46,7 @@ export const commentRoutes: FastifyPluginCallbackZod = (app, _opts, done) => {
             'validation',
             'not-found',
             'unsupported-media-type',
-            'internal',
-            ...UPSTREAM_PROBLEMS
+            'internal'
           ),
         },
       },

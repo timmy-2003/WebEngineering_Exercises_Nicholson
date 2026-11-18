@@ -4,7 +4,6 @@ import { testApp } from './helpers.js';
 import { Problem } from '../src/schemas/problem.js';
 import { loadEnv } from '../src/schemas/env.js';
 import { captureLogs } from './capture-logs.js';
-import { fakeWikipedia, type FakeWikipediaOptions } from './fake-wikipedia.js';
 
 const PROBLEMS = 'https://bears.example/problems';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/v;
@@ -16,15 +15,9 @@ afterEach(async () => {
 });
 
 async function start(
-  options: {
-    wiki?: FakeWikipediaOptions;
-    env?: Record<string, string>;
-  } = {}
+  options: { env?: Record<string, string> } = {}
 ): Promise<FastifyInstance> {
-  app = await testApp({
-    env: loadEnv(options.env ?? {}),
-    fetch: fakeWikipedia(options.wiki).fetch,
-  });
+  app = await testApp({ env: loadEnv(options.env ?? {}) });
   return app;
 }
 
@@ -125,35 +118,6 @@ describe('Problem Details (RFC 9457)', () => {
     expect(expectProblem(res, 404).type).toBe(`${PROBLEMS}/not-found`);
   });
 
-  it('502 for an unreachable upstream, without internals', async () => {
-    const res = await (
-      await start({ wiki: { parse: new TypeError('fetch failed') } })
-    ).inject({ method: 'GET', url: '/api/bears' });
-
-    const problem = expectProblem(res, 502);
-    expect(problem.type).toBe(`${PROBLEMS}/upstream`);
-    expect(res.payload).not.toMatch(/fetch failed|wikipedia\.org|api\.php/iv);
-  });
-
-  it('504 for an upstream timeout', async () => {
-    const res = await (
-      await start({ wiki: { parse: new DOMException('t', 'TimeoutError') } })
-    ).inject({ method: 'GET', url: '/api/bears' });
-
-    expect(expectProblem(res, 504).type).toBe(`${PROBLEMS}/upstream-timeout`);
-  });
-
-  it('503 with Retry-After when the upstream throttles', async () => {
-    const res = await (
-      await start({
-        wiki: { parse: { status: 429, headers: { 'retry-after': '30' } } },
-      })
-    ).inject({ method: 'GET', url: '/api/bears' });
-
-    expect(expectProblem(res, 503).type).toBe(`${PROBLEMS}/upstream-throttled`);
-    expect(res.headers['retry-after']).toBe('30');
-  });
-
   it('500 hides the message and stack of an unexpected error', async () => {
     const res = await (
       await start({ env: { ENABLE_DEBUG_ROUTES: 'true' } })
@@ -211,11 +175,13 @@ describe('request ids', () => {
     const { stream, lines } = captureLogs();
     app = await testApp({
       env: loadEnv({}),
-      fetch: fakeWikipedia({ parse: new TypeError('fetch failed') }).fetch,
+      ping: async () => {
+        await Promise.reject(new Error('connect ECONNREFUSED'));
+      },
       logger: { level: 'info', stream },
     });
 
-    const res = await app.inject({ method: 'GET', url: '/api/bears' });
+    const res = await app.inject({ method: 'GET', url: '/health/ready' });
 
     const requestId = String(res.headers['x-request-id']);
     expect(
