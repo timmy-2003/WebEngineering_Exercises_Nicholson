@@ -27,7 +27,7 @@ export const commentRoutes: FastifyPluginCallbackZod = (app, _opts, done) => {
       },
     },
     async (req) => ({
-      items: await app.commentStore.list(req.params.id),
+      items: await app.commentService.list(req.params.id),
       nextCursor: null,
     })
   );
@@ -52,7 +52,7 @@ export const commentRoutes: FastifyPluginCallbackZod = (app, _opts, done) => {
       },
     },
     async (req, reply) => {
-      const comment = await app.commentStore.create(req.params.id, req.body);
+      const comment = await app.commentService.create(req.params.id, req.body);
       return await reply
         .code(HTTP_CREATED)
         .header('location', `/api/comments/${comment.id}`)
@@ -73,7 +73,7 @@ export const commentRoutes: FastifyPluginCallbackZod = (app, _opts, done) => {
         },
       },
     },
-    (req) => app.commentStore.get(req.params.commentId)
+    async (req) => await app.commentService.get(req.params.commentId)
   );
 
   app.delete(
@@ -90,7 +90,7 @@ export const commentRoutes: FastifyPluginCallbackZod = (app, _opts, done) => {
       },
     },
     async (req, reply) => {
-      app.commentStore.remove(req.params.commentId);
+      await app.commentService.remove(req.params.commentId);
       return await reply.code(HTTP_NO_CONTENT).send(null);
     }
   );

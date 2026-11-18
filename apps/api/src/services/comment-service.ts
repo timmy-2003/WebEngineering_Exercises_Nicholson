@@ -1,65 +1,48 @@
-import { randomUUID } from 'node:crypto';
 import { NotFoundError } from '../errors.js';
+import type { Repos } from '../repositories/types.js';
 import type { Comment, NewComment } from '../schemas/comment.js';
-import type { BearService } from './bear-service.js';
 
-export interface CommentStore {
+export interface CommentService {
   list: (bearId: string) => Promise<Comment[]>;
-  get: (commentId: string) => Comment;
+  get: (commentId: string) => Promise<Comment>;
   create: (bearId: string, input: NewComment) => Promise<Comment>;
-  remove: (commentId: string) => void;
+  remove: (commentId: string) => Promise<void>;
 }
 
 declare module 'fastify' {
   interface FastifyInstance {
-    commentStore: CommentStore;
+    commentService: CommentService;
   }
 }
 
-export function createCommentService(bears: BearService): CommentStore {
-  const comments = new Map<string, Comment>();
-
-  async function requireBear(bearId: string): Promise<void> {
-    const known = await bears.list();
-    if (!known.some((bear) => bear.id === bearId)) {
-      throw new NotFoundError('bear', bearId);
-    }
-  }
-
-  function get(commentId: string): Comment {
-    const comment = comments.get(commentId);
-    if (comment === undefined) {
-      throw new NotFoundError('comment', commentId);
-    }
-    return comment;
-  }
-
+export function createCommentService({
+  bears,
+  comments,
+}: Repos): CommentService {
   return {
     async list(bearId) {
-      await requireBear(bearId);
-      return [...comments.values()]
-        .filter((comment) => comment.bearId === bearId)
-        .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+      if ((await bears.get(bearId)) === null) {
+        throw new NotFoundError('bear', bearId);
+      }
+      return await comments.listByBear(bearId);
     },
 
-    get,
-
-    async create(bearId, input) {
-      await requireBear(bearId);
-      const comment: Comment = {
-        id: randomUUID(),
-        bearId,
-        author: input.author,
-        text: input.text,
-        createdAt: new Date().toISOString(),
-      };
-      comments.set(comment.id, comment);
+    async get(commentId) {
+      const comment = await comments.findById(commentId);
+      if (comment === null) {
+        throw new NotFoundError('comment', commentId);
+      }
       return comment;
     },
 
-    remove(commentId) {
-      get(commentId);
-      comments.delete(commentId);
+    async create(bearId, input) {
+      return await comments.create({ bearId, ...input });
+    },
+
+    async remove(commentId) {
+      if (!(await comments.delete(commentId))) {
+        throw new NotFoundError('comment', commentId);
+      }
     },
   };
 }
