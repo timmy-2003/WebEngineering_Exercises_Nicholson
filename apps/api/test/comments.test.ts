@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
-import { buildApp } from '../src/app.js';
+import { testApp } from './helpers.js';
 import { Comment, CommentList } from '../src/schemas/comment.js';
 import { loadEnv } from '../src/schemas/env.js';
 import { fakeWikipedia } from './fake-wikipedia.js';
@@ -10,7 +10,7 @@ const env = loadEnv({ USER_AGENT: 'BearApp/0.1 (test)' });
 let app: FastifyInstance;
 
 beforeEach(async () => {
-  app = await buildApp({ env, fetch: fakeWikipedia().fetch });
+  app = await testApp({ env, fetch: fakeWikipedia().fetch });
 });
 
 afterEach(async () => {

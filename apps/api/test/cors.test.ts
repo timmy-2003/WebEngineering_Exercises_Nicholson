@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
-import { buildApp } from '../src/app.js';
+import { testApp } from './helpers.js';
 import { loadEnv } from '../src/schemas/env.js';
 import { fakeWikipedia } from './fake-wikipedia.js';
 
@@ -14,7 +14,7 @@ const COMMENT_URL = '/api/comments/0b7c3c3e-8f7a-4d4e-9a39-2f0e5b8f6a10';
 let app: FastifyInstance;
 
 beforeEach(async () => {
-  app = await buildApp({ env, fetch: fakeWikipedia().fetch });
+  app = await testApp({ env, fetch: fakeWikipedia().fetch });
 });
 
 afterEach(async () => {

@@ -30,6 +30,10 @@ export const EnvSchema = z.object({
   APP_VERSION: z.string().min(1).optional(),
   ENABLE_DEBUG_ROUTES: z.stringbool().default(false),
   LOG_FORMAT: z.enum(['pretty', 'json']).default('pretty'),
+  DATABASE_URL: z
+    .string()
+    .default('postgres://bears:bears@localhost:5432/bears'),
+  MIGRATE_ON_START: z.stringbool().default(false),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

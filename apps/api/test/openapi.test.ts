@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { buildApp } from '../src/app.js';
+import { testApp } from './helpers.js';
 import { loadEnv } from '../src/schemas/env.js';
 import { fakeWikipedia } from './fake-wikipedia.js';
 
@@ -23,7 +23,7 @@ let text: string;
 let doc: z.infer<typeof OpenApiDocument>;
 
 beforeAll(async () => {
-  app = await buildApp({ env, fetch: fakeWikipedia().fetch });
+  app = await testApp({ env, fetch: fakeWikipedia().fetch });
   const res = await app.inject({ method: 'GET', url: '/api/docs/json' });
   expect(res.statusCode).toBe(200);
   ({ body: text } = res);

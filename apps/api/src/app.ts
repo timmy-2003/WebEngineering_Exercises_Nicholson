@@ -43,6 +43,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iv;
 export interface BuildAppOptions {
   env: Env;
   fetch?: typeof globalThis.fetch;
+  ping: () => Promise<void>;
   logger?: FastifyServerOptions['logger'];
 }
 
@@ -143,7 +144,7 @@ export async function buildApp(
   );
   app.decorate('commentStore', createCommentService(app.bearService));
 
-  await app.register(healthRoutes);
+  await app.register(healthRoutes, { ping: options.ping });
   await app.register(bearRoutes);
   await app.register(commentRoutes);
   if (options.env.ENABLE_DEBUG_ROUTES) {

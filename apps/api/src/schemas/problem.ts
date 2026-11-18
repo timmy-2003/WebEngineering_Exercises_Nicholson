@@ -42,6 +42,10 @@ const PROBLEM_RESPONSES = {
     HTTP_GATEWAY_TIMEOUT,
     'Wikipedia did not answer in time',
   ],
+  'database-unavailable': [
+    HTTP_SERVICE_UNAVAILABLE,
+    'The database did not answer the readiness query',
+  ],
 } as const;
 
 export type ProblemType = keyof typeof PROBLEM_RESPONSES;

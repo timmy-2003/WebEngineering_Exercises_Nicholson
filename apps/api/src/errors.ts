@@ -81,6 +81,13 @@ export class UpstreamThrottledError extends AppError {
   }
 }
 
+export class DatabaseUnavailableError extends AppError {
+  readonly status = HTTP_SERVICE_UNAVAILABLE;
+  readonly type = `${PROBLEMS}/database-unavailable`;
+  readonly title = 'Database unavailable';
+  readonly publicDetail = 'The database cannot be reached right now.';
+}
+
 function statusOf(err: unknown): number | undefined {
   if (typeof err !== 'object' || err === null || !('statusCode' in err)) {
     return undefined;

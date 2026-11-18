@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
-import { buildApp } from '../src/app.js';
+import { testApp } from './helpers.js';
 import { Problem } from '../src/schemas/problem.js';
 import { loadEnv } from '../src/schemas/env.js';
 import { captureLogs } from './capture-logs.js';
@@ -21,7 +21,7 @@ async function start(
     env?: Record<string, string>;
   } = {}
 ): Promise<FastifyInstance> {
-  app = await buildApp({
+  app = await testApp({
     env: loadEnv(options.env ?? {}),
     fetch: fakeWikipedia(options.wiki).fetch,
   });
@@ -209,7 +209,7 @@ describe('request ids', () => {
 
   it('writes the request id into the error log line', async () => {
     const { stream, lines } = captureLogs();
-    app = await buildApp({
+    app = await testApp({
       env: loadEnv({}),
       fetch: fakeWikipedia({ parse: new TypeError('fetch failed') }).fetch,
       logger: { level: 'info', stream },

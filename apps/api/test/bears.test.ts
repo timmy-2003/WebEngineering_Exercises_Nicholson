@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
-import { buildApp } from '../src/app.js';
+import { testApp } from './helpers.js';
 import { BearDetail, BearList } from '../src/schemas/bear.js';
 import { loadEnv } from '../src/schemas/env.js';
 import {
@@ -25,7 +25,7 @@ async function start(
   options: FakeWikipediaOptions = {}
 ): Promise<ReturnType<typeof fakeWikipedia>> {
   const fake = fakeWikipedia(options);
-  app = await buildApp({ env, fetch: fake.fetch });
+  app = await testApp({ env, fetch: fake.fetch });
   return fake;
 }
 

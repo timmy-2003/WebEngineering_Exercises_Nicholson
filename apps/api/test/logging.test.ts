@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
-import { buildApp } from '../src/app.js';
+import { testApp } from './helpers.js';
 import { loadEnv } from '../src/schemas/env.js';
 import { captureLogs } from './capture-logs.js';
 import { fakeWikipedia } from './fake-wikipedia.js';
@@ -14,7 +14,7 @@ afterEach(async () => {
 describe('request logging', () => {
   it('writes one summary line per request with method, url, status and duration', async () => {
     const { stream, lines } = captureLogs();
-    app = await buildApp({
+    app = await testApp({
       env: loadEnv({}),
       fetch: fakeWikipedia().fetch,
       logger: { level: 'info', stream },
@@ -37,7 +37,7 @@ describe('request logging', () => {
 
   it('logs a known upstream failure as one short error line plus the summary', async () => {
     const { stream, lines } = captureLogs();
-    app = await buildApp({
+    app = await testApp({
       env: loadEnv({}),
       fetch: fakeWikipedia({ parse: new TypeError('fetch failed') }).fetch,
       logger: { level: 'info', stream },
@@ -55,7 +55,7 @@ describe('request logging', () => {
 
   it('logs a 4xx summary at warn level', async () => {
     const { stream, lines } = captureLogs();
-    app = await buildApp({
+    app = await testApp({
       env: loadEnv({}),
       fetch: fakeWikipedia().fetch,
       logger: { level: 'info', stream },
@@ -69,7 +69,7 @@ describe('request logging', () => {
 
   it('does not log health checks at info level', async () => {
     const { stream, lines } = captureLogs();
-    app = await buildApp({
+    app = await testApp({
       env: loadEnv({}),
       fetch: fakeWikipedia().fetch,
       logger: { level: 'info', stream },
