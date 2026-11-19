@@ -949,6 +949,195 @@ make most CORS problems disappear?
 > A BFF is normally served from the same origin as the frontend (nginx or the dev proxy sends `/api` to it). Same origin
 > means no CORS at all, and the call to the third party (Wikipedia) happens server to server, where CORS does not apply.
 
+## 5. Persistence and Data Modelling
+
+The API stores bears and comments in PostgreSQL 18 (compose service `db`), accessed with Drizzle ORM. Bears are seeded
+once from Wikipedia; requests never call Wikipedia anymore.
+
+**Run it**
+
+| Command                                                          | What it does                                                                   |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `docker compose up --build`                                      | db, api (applies migrations on start), one-shot `seed` service, web on `:8080` |
+| `docker compose up -d db` then `npm run db:migrate`              | apply the migrations in `apps/api/drizzle/` to the local database              |
+| `npm run db:seed`                                                | upsert the bears from Wikipedia (run again to refresh)                         |
+| `npm run dev`                                                    | API + web with hot reload against the compose database                         |
+| `npm run db:generate -- --name <name>`                           | generate a new SQL migration from `src/db/schema.ts`                           |
+| `npm run db:seed:comments`                                       | insert 100,000 comments (Task 4)                                               |
+| `npm run db:explain`                                             | print the comment query plan with and without the index (Task 4)               |
+| `REPORT_MODE=naive docker compose up -d api`, `npm run db:storm` | lost-update demo; without `REPORT_MODE` the fixed version runs (Task 5)        |
+
+`npm test` needs no database (in-memory repositories). With
+`TEST_DATABASE_URL=postgres://bears:bears@localhost:5432/bears_test` (after `CREATE DATABASE bears_test`) the repository
+contract tests also run against PostgreSQL.
+
+### Tasks
+
+#### Task 1: Add PostgreSQL to the stack
+
+`db` service in `compose.yaml` (PostgreSQL 18, named volume, healthcheck), the API starts only when `db` is healthy;
+`DATABASE_URL` from the environment, validated with zod; one `pg.Pool`; `GET /health/ready` returns 200 only if
+`SELECT 1` succeeds, otherwise a 503 Problem; `/health` stays a pure liveness check.
+
+**Theory question:** Liveness versus readiness: who uses each, and what goes wrong if the readiness check includes too
+many dependencies? Why is a pool necessary, and what limits its size?
+
+> **Answer:**
+>
+> Liveness (`/health`) answers "is the process alive?"; the orchestrator restarts the container when it fails. Readiness
+> (`/health/ready`) answers "can it serve requests now?"; load balancers stop sending traffic until it passes. If
+> readiness checks too much (Wikipedia, other services), one slow dependency takes every instance out of rotation at
+> once, although most endpoints would still work. Ours checks only the database, which every request needs.
+>
+> Opening a connection costs a TCP and TLS handshake, authentication and a server process. A pool keeps a few
+> connections open and lends them out. Its size is limited by the database's `max_connections`, shared by all API
+> instances, and by the database's CPU and memory; more connections than cores mostly add waiting. We use 10.
+
+#### Task 2: Model bears and comments, first migration
+
+Drizzle schema for `bears` (slug id, name, binomial, image_url, range, fetched_at, plus `intro` so the detail page needs
+no Wikipedia call) and `comments` (uuid id, bear_id FK `ON DELETE CASCADE`, author, text, created_at, CHECK constraints
+for the lengths); SQL migration generated with drizzle-kit; `npm run db:seed` fetches the bears through the Playground 4
+Wikipedia code and upserts them; `GET /api/bears` reads from the database.
+
+**Theory question:** Why migrations instead of creating tables from code at startup? What does forward-only mean, and
+what goes wrong when two branches both create migration 0003? Natural versus surrogate key: when is which appropriate?
+
+> **Answer:**
+>
+> Migrations are versioned SQL files in the repository, applied in order and recorded in `drizzle.__drizzle_migrations`.
+> Every database goes through the same reviewed steps, and existing data is changed deliberately. "Create tables at
+> startup" cannot alter a table that already holds data.
+>
+> Forward-only: an applied migration is never edited or undone; a mistake is fixed with a new migration. If two branches
+> both add `0003`, the files and journal entries collide on merge, and a database that already ran one branch's `0003`
+> will not run the other. One branch has to regenerate its migration as `0004`.
+>
+> A natural key comes from the data and is stable and meaningful, like the bear slug from the binomial name. A surrogate
+> key (the comment's `uuidv7()`) is used when nothing in the data is unique and stable, as with comments.
+
+#### Task 3: Introduce a repository layer
+
+`BearRepository` and `CommentRepository` as TypeScript interfaces with a Drizzle and an in-memory implementation;
+services receive the repositories through `buildApp` options and are registered as Fastify decorators; routes contain no
+SQL or ORM calls; comments survive an API restart; the tests use the in-memory repositories.
+
+**Theory question:** What does the repository hide, and what does it cost? Explain the N+1 problem using "comments for
+all bears" and show how your repository avoids it.
+
+> **Answer:**
+>
+> The repository hides how data is stored: SQL, Drizzle, Postgres error codes (a foreign-key violation becomes a 404)
+> and row-to-object mapping. Services and tests only see methods like `listByBear`. The cost is another layer, and
+> database features (row locks, transactions) have to be added to the interface explicitly.
+>
+> N+1: load all bears (1 query), then call `listByBear` for each bear (N queries). With 8 bears that is 9 round trips,
+> growing with the data. Our API never loops over bears; one page of comments is one query. If "comments for all bears"
+> were needed, it would be one method doing one query (`WHERE bear_id IN (…)` or a join) instead of a loop.
+
+#### Task 4: Pagination, filtering and one measured index
+
+`GET /api/bears/:id/comments` is cursor-paginated (`limit`, `cursor` from `created_at` and `id`, response contains
+`nextCursor`), newest first; `?q=` on `GET /api/bears` filters by name; a script seeds 100,000 comments; the index on
+`(bear_id, created_at, id)` lives in migration `0001`; the web app loads more comments with a button.
+
+Query (first page for one bear, as the repository runs it):
+`SELECT * FROM comments WHERE bear_id = 'ursus-arctos' ORDER BY created_at DESC, id DESC LIMIT 21` (100,000 comments,
+12,501 for this bear; `npm run db:explain`)
+
+With the index `comments_bear_created_idx`: **0.101 ms**
+
+```
+Limit  (cost=0.42..10.33 rows=21 width=67) (actual time=0.051..0.062 rows=21.00 loops=1)
+  Buffers: shared hit=6
+  ->  Index Scan Backward using comments_bear_created_idx on comments  (cost=0.42..5821.12 rows=12333 width=67) (actual time=0.050..0.059 rows=21.00 loops=1)
+        Index Cond: (bear_id = 'ursus-arctos'::text)
+        Index Searches: 1
+        Buffers: shared hit=6
+Planning:
+  Buffers: shared hit=133 read=1
+Planning Time: 0.526 ms
+Execution Time: 0.101 ms
+```
+
+Without the index (dropped in a transaction that is rolled back): **13.037 ms**
+
+```
+Limit  (cost=2817.53..2817.58 rows=21 width=67) (actual time=13.012..13.016 rows=21.00 loops=1)
+  Buffers: shared hit=1241
+  ->  Sort  (cost=2817.53..2848.36 rows=12333 width=67) (actual time=13.010..13.012 rows=21.00 loops=1)
+        Sort Key: created_at DESC, id DESC
+        Sort Method: top-N heapsort  Memory: 27kB
+        Buffers: shared hit=1241
+        ->  Seq Scan on comments  (cost=0.00..2485.01 rows=12333 width=67) (actual time=0.011..11.674 rows=12501.00 loops=1)
+              Filter: (bear_id = 'ursus-arctos'::text)
+              Rows Removed by Filter: 87500
+              Buffers: shared hit=1235
+Planning:
+  Buffers: shared hit=4
+Planning Time: 0.099 ms
+Execution Time: 13.037 ms
+```
+
+With the index, PostgreSQL walks the index backwards from the newest entry of this bear and stops after 21 rows (6 pages
+read). Without it, it reads the whole table, throws away 87,500 rows and sorts 12,501 to keep 21 (1,241 pages): about
+130 times slower.
+
+**Theory question:** Why does offset pagination get slower and skip or repeat rows, and how does a cursor avoid that?
+What is a B-tree index, why does the column order in a composite index matter, and why may PostgreSQL ignore an index on
+a small table?
+
+> **Answer:**
+>
+> `OFFSET 10000` still reads and throws away 10,000 rows, so later pages get slower. And if a comment is added or
+> deleted between two requests, everything shifts by one: a row repeats or is skipped. A cursor says "continue after
+> `(created_at, id)` of the last row I saw". The index jumps straight there, and new rows do not move it. `id` breaks
+> ties when two comments share a millisecond.
+>
+> A B-tree is a balanced, sorted tree; finding a key or a start point is a few page reads, and the leaves can be read in
+> order in both directions. A composite index is sorted by the first column, then the second within it.
+> `(bear_id, created_at, id)` serves "one bear, newest first"; `(created_at, bear_id)` could not jump to one bear.
+>
+> On a small table, all rows fit in a few pages. Reading them in one go is cheaper than going through the index and then
+> to the table, so the planner chooses a sequential scan.
+
+#### Task 5: Transactions and the lost update
+
+`POST /api/comments/:id/report` increments `report_count`; at three reports the comment is hidden (`hidden_at`) and
+disappears from lists. First the naive version (read, increment in TypeScript, write), then the fix: the service opens a
+transaction and reads the row with `SELECT … FOR UPDATE`. `npm run db:storm` sends 50 concurrent reports and prints the
+final count. `REPORT_MODE=naive` switches back to the naive version.
+
+| 50 concurrent reports | Run 1 | Run 2 | Run 3 |
+| --------------------- | ----- | ----- | ----- |
+| naive                 | 2     | 4     | 3     |
+| `SELECT … FOR UPDATE` | 50    | 50    | 50    |
+
+Lost update: many requests read `report_count = 0` before any of them writes. Each computes `0 + 1` and writes `1`, so
+the increments overwrite each other. In run 1 only 2 of 50 reports survived and the comment was never hidden. With
+`FOR UPDATE`, the second request waits at the read until the first one commits, then reads the new value. The
+transaction boundary is in `comment-service.ts`; the repository only offers `transaction`, the row lock and `update`.
+
+**Theory question:** Explain ACID and the lost-update anomaly. What does PostgreSQL's default isolation level (read
+committed) guarantee, and what not? Compare pessimistic locking, atomic updates and optimistic concurrency with a
+version column.
+
+> **Answer:**
+>
+> ACID: **atomic** (all statements of a transaction or none), **consistent** (constraints hold afterwards), **isolated**
+> (concurrent transactions do not see each other's unfinished work), **durable** (committed data survives a crash). A
+> lost update happens when two transactions read the same value and both write a result based on it; the second write
+> silently overwrites the first.
+>
+> Read committed guarantees that every statement only sees committed data. It does not keep a read stable until your
+> write, so read-then-write in two statements still loses updates, as the naive version shows.
+>
+> - **Pessimistic locking** (`SELECT … FOR UPDATE`): others wait; simple and correct, but concurrent writers queue.
+> - **Atomic update** (`UPDATE … SET report_count = report_count + 1 … RETURNING`): one statement, no lost update, the
+>   fastest, but only for logic that fits into SQL.
+> - **Optimistic** (`version` column, `UPDATE … WHERE version = $read`): no locks; on conflict 0 rows change and the
+>   client retries. Good when conflicts are rare, bad under a storm like this.
+
 ---
 
 ## In-Class Accessibility Workshop

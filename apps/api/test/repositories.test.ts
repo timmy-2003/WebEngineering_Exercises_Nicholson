@@ -51,7 +51,11 @@ describe.skipIf(process.env.TEST_DATABASE_URL === undefined)('postgres', () => {
           if (row === undefined) {
             throw new Error('insert returned no row');
           }
-          return { ...row, createdAt: row.createdAt.toISOString() };
+          return {
+            ...row,
+            createdAt: row.createdAt.toISOString(),
+            hiddenAt: null,
+          };
         },
       },
     };

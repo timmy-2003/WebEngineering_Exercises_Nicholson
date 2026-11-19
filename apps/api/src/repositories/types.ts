@@ -24,16 +24,28 @@ export interface CommentPage {
   nextCursor: string | null;
 }
 
+export interface ReportPatch {
+  reportCount: number;
+  hiddenAt: string | null;
+}
+
 export interface CommentRepository {
-  /** Newest first. Rejects with InvalidCursorError for a foreign cursor. */
+  /** Newest first, hidden comments excluded. Rejects with InvalidCursorError for a foreign cursor. */
   listByBear: (bearId: string, page: Page) => Promise<CommentPage>;
-  findById: (id: string) => Promise<Comment | null>;
+  /** `lock` takes a row lock (SELECT … FOR UPDATE); only useful inside `transaction`. */
+  findById: (
+    id: string,
+    options?: { lock?: boolean }
+  ) => Promise<Comment | null>;
   /** Rejects with NotFoundError if the bear does not exist. */
   create: (input: NewCommentRecord) => Promise<Comment>;
   delete: (id: string) => Promise<boolean>;
+  update: (id: string, patch: ReportPatch) => Promise<Comment | null>;
 }
 
 export interface Repos {
   bears: BearRepository;
   comments: CommentRepository;
+  /** Runs `work` in one database transaction; the service decides where it starts and ends. */
+  transaction: <T>(work: (tx: Repos) => Promise<T>) => Promise<T>;
 }

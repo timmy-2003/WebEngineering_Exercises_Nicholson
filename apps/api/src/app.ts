@@ -128,7 +128,10 @@ export async function buildApp(
   });
   await app.register(swaggerUi, { routePrefix: '/api/docs' });
   app.decorate('bearService', createBearService(options.repos.bears));
-  app.decorate('commentService', createCommentService(options.repos));
+  app.decorate(
+    'commentService',
+    createCommentService(options.repos, options.env.REPORT_MODE)
+  );
 
   await app.register(healthRoutes, { ping: options.ping });
   await app.register(bearRoutes);

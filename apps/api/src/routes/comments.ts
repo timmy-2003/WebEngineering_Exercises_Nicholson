@@ -75,6 +75,22 @@ export const commentRoutes: FastifyPluginCallbackZod = (app, _opts, done) => {
     async (req) => await app.commentService.get(req.params.commentId)
   );
 
+  app.post(
+    '/api/comments/:commentId/report',
+    {
+      schema: {
+        tags: ['comments'],
+        summary: 'Report a comment; it is hidden after three reports',
+        params: CommentIdParams,
+        response: {
+          200: Comment,
+          ...problemResponses('validation', 'not-found', 'internal'),
+        },
+      },
+    },
+    async (req) => await app.commentService.report(req.params.commentId)
+  );
+
   app.delete(
     '/api/comments/:commentId',
     {

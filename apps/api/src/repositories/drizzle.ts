@@ -1,5 +1,6 @@
-import { and, desc, eq, ilike, sql } from 'drizzle-orm';
-import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { and, desc, eq, ilike, isNull, sql } from 'drizzle-orm';
+import type { NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
+import type { PgDatabase } from 'drizzle-orm/pg-core';
 import { bears, comments } from '../db/schema.js';
 import { NotFoundError } from '../errors.js';
 import type { Comment } from '../schemas/comment.js';
@@ -24,8 +25,15 @@ const bearColumns = {
 type CommentRow = typeof comments.$inferSelect;
 
 function toComment(row: CommentRow): Comment {
-  return { ...row, createdAt: row.createdAt.toISOString() };
+  return {
+    ...row,
+    createdAt: row.createdAt.toISOString(),
+    hiddenAt: row.hiddenAt?.toISOString() ?? null,
+  };
 }
+
+// Both the pool-backed database and a transaction handle.
+type Executor = PgDatabase<NodePgQueryResultHKT>;
 
 // Drizzle wraps driver errors, so the Postgres error code sits on the cause.
 function isForeignKeyViolation(err: unknown): boolean {
@@ -38,7 +46,7 @@ function isForeignKeyViolation(err: unknown): boolean {
   );
 }
 
-export function createDrizzleRepos(db: NodePgDatabase): Repos {
+export function createDrizzleRepos(db: Executor): Repos {
   return {
     bears: {
       async list(q) {
@@ -89,6 +97,7 @@ export function createDrizzleRepos(db: NodePgDatabase): Repos {
           .where(
             and(
               eq(comments.bearId, bearId),
+              isNull(comments.hiddenAt),
               after === undefined
                 ? undefined
                 : sql`(${comments.createdAt}, ${comments.id}) < (${after.createdAt}::timestamptz, ${after.id}::uuid)`
@@ -98,11 +107,9 @@ export function createDrizzleRepos(db: NodePgDatabase): Repos {
           .limit(limit + 1);
         return toPage(rows.map(toComment), limit);
       },
-      async findById(id) {
-        const [row] = await db
-          .select()
-          .from(comments)
-          .where(eq(comments.id, id));
+      async findById(id, { lock = false } = {}) {
+        const query = db.select().from(comments).where(eq(comments.id, id));
+        const [row] = lock ? await query.for('update') : await query;
         return row === undefined ? null : toComment(row);
       },
       async create(input) {
@@ -126,6 +133,20 @@ export function createDrizzleRepos(db: NodePgDatabase): Repos {
           .returning({ id: comments.id });
         return deleted.length > 0;
       },
+      async update(id, { reportCount, hiddenAt }) {
+        const [row] = await db
+          .update(comments)
+          .set({
+            reportCount,
+            hiddenAt: hiddenAt === null ? null : new Date(hiddenAt),
+          })
+          .where(eq(comments.id, id))
+          .returning();
+        return row === undefined ? null : toComment(row);
+      },
     },
+
+    transaction: async (work) =>
+      await db.transaction(async (tx) => await work(createDrizzleRepos(tx))),
   };
 }

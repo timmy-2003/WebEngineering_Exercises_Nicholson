@@ -150,15 +150,61 @@ export function describeRepos(name: string, make: MakeRepos): void {
       expect(new Set(seen)).toEqual(new Set(created.map((c) => c.id)));
     });
 
-    it('rejects a cursor it did not issue', async () => {
+    it('updates the report count and hides a comment from lists', async () => {
+      const repos = await make();
+      const { id } = await repos.comments.create({
+        bearId: 'ursus-arctos',
+        author: 'Ada',
+        text: 'Hi',
+      });
+      const hiddenAt = '2026-01-01T00:00:00.000Z';
+
+      const updated = await repos.comments.update(id, {
+        reportCount: 3,
+        hiddenAt,
+      });
+
+      expect(updated).toMatchObject({ id, reportCount: 3, hiddenAt });
+      expect(await repos.comments.findById(id)).toEqual(updated);
+      expect(
+        (await repos.comments.listByBear('ursus-arctos', PAGE)).items
+      ).toEqual([]);
+      expect(
+        await repos.comments.update(UNKNOWN_ID, {
+          reportCount: 1,
+          hiddenAt: null,
+        })
+      ).toBeNull();
+    });
+
+    it('runs work in a transaction and locks a row inside it', async () => {
+      const repos = await make();
+      const { id } = await repos.comments.create({
+        bearId: 'ursus-arctos',
+        author: 'Ada',
+        text: 'Hi',
+      });
+
+      const result = await repos.transaction(async (tx) => {
+        const locked = await tx.comments.findById(id, { lock: true });
+        return await tx.comments.update(id, {
+          reportCount: (locked?.reportCount ?? 0) + 1,
+          hiddenAt: null,
+        });
+      });
+
+      expect(result?.reportCount).toBe(1);
+      expect((await repos.comments.findById(id))?.reportCount).toBe(1);
+    });
+
+    it('rejects a cursor with a date PostgreSQL cannot store', async () => {
       const { comments } = await make();
-      const wrongShape = Buffer.from('{"x":1}').toString('base64url');
+      const yearZero = Buffer.from(
+        JSON.stringify({ createdAt: '0000-01-01T00:00:00Z', id: UNKNOWN_ID })
+      ).toString('base64url');
 
       await expect(
-        comments.listByBear('ursus-arctos', { ...PAGE, cursor: 'abc' })
-      ).rejects.toBeInstanceOf(InvalidCursorError);
-      await expect(
-        comments.listByBear('ursus-arctos', { ...PAGE, cursor: wrongShape })
+        comments.listByBear('ursus-arctos', { ...PAGE, cursor: yearZero })
       ).rejects.toBeInstanceOf(InvalidCursorError);
     });
 

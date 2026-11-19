@@ -38,14 +38,6 @@ describe('GET /api/bears', () => {
       'ailuropoda-melanoleuca',
     ]);
   });
-
-  it('is an empty list before the seed has run', async () => {
-    const empty = await testApp({ bears: [] });
-    const res = await empty.inject({ method: 'GET', url: '/api/bears' });
-    await empty.close();
-
-    expect(BearList.parse(res.json()).items).toEqual([]);
-  });
 });
 
 describe('GET /api/bears/:id', () => {

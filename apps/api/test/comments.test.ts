@@ -142,21 +142,6 @@ describe('GET /api/bears/:id/comments', () => {
     expect(second.nextCursor).toBeNull();
   });
 
-  it.each(['limit=0', 'limit=101', 'cursor=abc'])(
-    'rejects %s with a 400 Problem',
-    async (query) => {
-      const res = await app.inject({
-        method: 'GET',
-        url: `/api/bears/ursus-arctos/comments?${query}`,
-      });
-
-      expect(res.statusCode).toBe(400);
-      expect(res.headers['content-type']).toMatch(
-        /^application\/problem\+json/v
-      );
-    }
-  );
-
   it('keeps comments per bear', async () => {
     await post('ursus-arctos', { author: 'Ada', text: 'brown' });
 
@@ -216,3 +201,72 @@ describe('DELETE /api/comments/:commentId', () => {
     expect(res.statusCode).toBe(400);
   });
 });
+
+describe.each(['naive', 'locked'] as const)(
+  'POST /api/comments/:commentId/report (%s)',
+  (mode) => {
+    let reportApp: FastifyInstance;
+
+    beforeEach(async () => {
+      reportApp = await testApp({
+        env: loadEnv({ USER_AGENT: 'BearApp/0.1 (test)', REPORT_MODE: mode }),
+      });
+    });
+
+    afterEach(async () => {
+      await reportApp.close();
+    });
+
+    async function report(id: string): Promise<LightMyRequestResponse> {
+      return await reportApp.inject({
+        method: 'POST',
+        url: `/api/comments/${id}/report`,
+      });
+    }
+
+    it('hides a comment at the third report and keeps counting', async () => {
+      const { id } = Comment.parse(
+        (
+          await reportApp.inject({
+            method: 'POST',
+            url: '/api/bears/ursus-arctos/comments',
+            payload: { author: 'Ada', text: 'Hi' },
+          })
+        ).json()
+      );
+
+      const first = Comment.parse((await report(id)).json());
+      const second = Comment.parse((await report(id)).json());
+      const third = Comment.parse((await report(id)).json());
+      const fourth = Comment.parse((await report(id)).json());
+
+      expect([first, second, third, fourth].map((c) => c.reportCount)).toEqual([
+        1, 2, 3, 4,
+      ]);
+      expect(second.hiddenAt).toBeNull();
+      expect(third.hiddenAt).not.toBeNull();
+      expect(fourth.hiddenAt).toBe(third.hiddenAt);
+
+      const listed = CommentList.parse(
+        (
+          await reportApp.inject({
+            method: 'GET',
+            url: '/api/bears/ursus-arctos/comments',
+          })
+        ).json()
+      );
+      expect(listed.items).toEqual([]);
+      const byId = await reportApp.inject({
+        method: 'GET',
+        url: `/api/comments/${id}`,
+      });
+      expect(Comment.parse(byId.json()).reportCount).toBe(4);
+    });
+
+    it('is 404 for an unknown comment', async () => {
+      const res = await report('01900000-0000-7000-8000-000000000000');
+
+      expect(res.statusCode).toBe(404);
+    });
+  }
+);

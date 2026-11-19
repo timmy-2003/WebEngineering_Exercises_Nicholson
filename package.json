@@ -24,6 +24,7 @@
     "db:seed": "npm run db:seed -w apps/api",
     "db:seed:comments": "npm run db:seed:comments -w apps/api",
     "db:explain": "npm run db:explain -w apps/api",
+    "db:storm": "npm run db:storm -w apps/api --",
     "prepare": "husky"
   },
   "author": "Timothy Nicholson",

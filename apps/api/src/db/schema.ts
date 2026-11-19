@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import {
   check,
   index,
+  integer,
   pgTable,
   text,
   timestamp,
@@ -35,6 +36,8 @@ export const comments = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true, precision: 3 })
       .notNull()
       .defaultNow(),
+    reportCount: integer('report_count').notNull().default(0),
+    hiddenAt: timestamp('hidden_at', { withTimezone: true, precision: 3 }),
   },
   (table) => [
     // Serves the keyset query: WHERE bear_id = ? ORDER BY created_at, id.
@@ -43,6 +46,7 @@ export const comments = pgTable(
       table.createdAt,
       table.id
     ),
+    check('comments_report_count_nonnegative', sql`${table.reportCount} >= 0`),
     check(
       'comments_author_length',
       sql`char_length(${table.author}) BETWEEN 1 AND 80`

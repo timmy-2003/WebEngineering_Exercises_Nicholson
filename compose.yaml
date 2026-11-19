@@ -31,6 +31,8 @@ services:
       LOG_FORMAT: ${LOG_FORMAT:-pretty}
       DATABASE_URL: postgres://${POSTGRES_USER:-bears}:${POSTGRES_PASSWORD:-bears}@db:5432/${POSTGRES_DB:-bears}
       MIGRATE_ON_START: 'true'
+      # naive = lost-update demo (Task 5), locked = SELECT … FOR UPDATE
+      REPORT_MODE: ${REPORT_MODE:-locked}
     ports:
       - '3000:3000'
     depends_on:

@@ -1,7 +1,11 @@
 import { z } from 'zod';
 import { InvalidCursorError } from '../errors.js';
 
-const CommentKey = z.object({ createdAt: z.iso.datetime(), id: z.uuid() });
+const CommentKey = z.object({
+  // PostgreSQL has no year 0; such a date would fail in the query (500).
+  createdAt: z.iso.datetime().refine((value) => value >= '0001'),
+  id: z.uuid(),
+});
 export type CommentKey = z.infer<typeof CommentKey>;
 
 export function encodeCursor({ createdAt, id }: CommentKey): string {

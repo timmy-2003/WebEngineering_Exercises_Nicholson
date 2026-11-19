@@ -32,7 +32,7 @@ export function createMemoryRepos(
       return new Date(lastMs);
     });
 
-  return {
+  const repos: Repos = {
     bears: {
       async list(q) {
         const needle = q?.toLowerCase();
@@ -64,6 +64,7 @@ export function createMemoryRepos(
           .filter(
             (comment) =>
               comment.bearId === bearId &&
+              comment.hiddenAt === null &&
               (after === undefined || isBefore(comment, after))
           )
           .sort(newestFirst);
@@ -80,6 +81,8 @@ export function createMemoryRepos(
           id: randomUUID(),
           ...input,
           createdAt: now().toISOString(),
+          reportCount: 0,
+          hiddenAt: null,
         };
         comments.set(comment.id, comment);
         return await Promise.resolve(comment);
@@ -87,6 +90,20 @@ export function createMemoryRepos(
       async delete(id) {
         return await Promise.resolve(comments.delete(id));
       },
+      async update(id, patch) {
+        const comment = comments.get(id);
+        if (comment === undefined) {
+          return null;
+        }
+        const updated = { ...comment, ...patch };
+        comments.set(id, updated);
+        return await Promise.resolve(updated);
+      },
     },
+
+    // Single-threaded and without rollback: enough for tests, which never
+    // depend on a rollback.
+    transaction: async (work) => await work(repos),
   };
+  return repos;
 }
