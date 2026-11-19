@@ -108,15 +108,54 @@ describe('POST /api/bears/:id/comments', () => {
 });
 
 describe('GET /api/bears/:id/comments', () => {
-  it('lists comments in creation order', async () => {
+  it('lists comments newest first', async () => {
     await post('ursus-arctos', { author: 'Ada', text: 'first' });
     await post('ursus-arctos', { author: 'Bob', text: 'second' });
 
     expect((await list('ursus-arctos')).map((c) => c.text)).toEqual([
-      'first',
       'second',
+      'first',
     ]);
   });
+
+  it('pages with limit and nextCursor', async () => {
+    await post('ursus-arctos', { author: 'Ada', text: 'one' });
+    await post('ursus-arctos', { author: 'Ada', text: 'two' });
+    await post('ursus-arctos', { author: 'Ada', text: 'three' });
+    const url = '/api/bears/ursus-arctos/comments?limit=2';
+
+    const first = CommentList.parse(
+      (await app.inject({ method: 'GET', url })).json()
+    );
+    expect(first.items.map((c) => c.text)).toEqual(['three', 'two']);
+    expect(first.nextCursor).not.toBeNull();
+
+    const second = CommentList.parse(
+      (
+        await app.inject({
+          method: 'GET',
+          url: `${url}&cursor=${first.nextCursor ?? ''}`,
+        })
+      ).json()
+    );
+    expect(second.items.map((c) => c.text)).toEqual(['one']);
+    expect(second.nextCursor).toBeNull();
+  });
+
+  it.each(['limit=0', 'limit=101', 'cursor=abc'])(
+    'rejects %s with a 400 Problem',
+    async (query) => {
+      const res = await app.inject({
+        method: 'GET',
+        url: `/api/bears/ursus-arctos/comments?${query}`,
+      });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.headers['content-type']).toMatch(
+        /^application\/problem\+json/v
+      );
+    }
+  );
 
   it('keeps comments per bear', async () => {
     await post('ursus-arctos', { author: 'Ada', text: 'brown' });

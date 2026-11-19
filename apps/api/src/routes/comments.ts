@@ -5,6 +5,7 @@ import {
   Comment,
   CommentIdParams,
   CommentList,
+  CommentListQuery,
   NewComment,
 } from '../schemas/comment.js';
 import { problemResponses } from '../schemas/problem.js';
@@ -18,18 +19,16 @@ export const commentRoutes: FastifyPluginCallbackZod = (app, _opts, done) => {
     {
       schema: {
         tags: ['comments'],
-        summary: 'List the comments of a bear',
+        summary: 'List the comments of a bear, newest first',
         params: BearIdParams,
+        querystring: CommentListQuery,
         response: {
           200: CommentList,
           ...problemResponses('validation', 'not-found', 'internal'),
         },
       },
     },
-    async (req) => ({
-      items: await app.commentService.list(req.params.id),
-      nextCursor: null,
-    })
+    async (req) => await app.commentService.list(req.params.id, req.query)
   );
 
   app.post(

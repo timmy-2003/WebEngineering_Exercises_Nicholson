@@ -21,6 +21,10 @@ export const BearDetail = Bear.extend({
 });
 export type BearDetail = z.infer<typeof BearDetail>;
 
+export const BearListQuery = z.object({
+  q: z.string().trim().optional(),
+});
+
 export const BearIdParams = z.object({
   id: BearId,
 });

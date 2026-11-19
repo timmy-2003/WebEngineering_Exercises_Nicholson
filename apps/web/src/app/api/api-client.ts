@@ -156,20 +156,31 @@ export async function getBear(
 const commentsPath = (bearId: string): string =>
   `/api/bears/${encodeURIComponent(bearId)}/comments`;
 
+export interface CommentPage {
+  items: Comment[];
+  nextCursor: string | null;
+}
+
 export async function getComments(
   bearId: string,
-  signal: AbortSignal
-): Promise<Comment[]> {
-  const path = commentsPath(bearId);
+  signal: AbortSignal,
+  cursor?: string
+): Promise<CommentPage> {
+  const query =
+    cursor === undefined
+      ? ''
+      : `?${new URLSearchParams({ cursor }).toString()}`;
+  const path = `${commentsPath(bearId)}${query}`;
   const body = await getJson(path, signal);
   if (
     !isObject(body) ||
     !Array.isArray(body['items']) ||
-    !body['items'].every(isComment)
+    !body['items'].every(isComment) ||
+    !(typeof body['nextCursor'] === 'string' || body['nextCursor'] === null)
   ) {
     throw unexpectedShape(path);
   }
-  return body['items'];
+  return { items: body['items'], nextCursor: body['nextCursor'] };
 }
 
 export async function postComment(

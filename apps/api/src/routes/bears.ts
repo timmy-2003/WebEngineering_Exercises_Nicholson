@@ -1,5 +1,10 @@
 import type { FastifyPluginCallbackZod } from 'fastify-type-provider-zod';
-import { BearDetail, BearIdParams, BearList } from '../schemas/bear.js';
+import {
+  BearDetail,
+  BearIdParams,
+  BearList,
+  BearListQuery,
+} from '../schemas/bear.js';
 import { problemResponses } from '../schemas/problem.js';
 
 export const bearRoutes: FastifyPluginCallbackZod = (app, _opts, done) => {
@@ -8,15 +13,16 @@ export const bearRoutes: FastifyPluginCallbackZod = (app, _opts, done) => {
     {
       schema: {
         tags: ['bears'],
-        summary: 'List all bears',
+        summary: 'List bears, optionally filtered by name',
+        querystring: BearListQuery,
         response: {
           200: BearList,
-          ...problemResponses('internal'),
+          ...problemResponses('validation', 'internal'),
         },
       },
     },
-    async () => ({
-      items: await app.bearService.list(),
+    async (req) => ({
+      items: await app.bearService.list(req.query.q),
       nextCursor: null,
     })
   );

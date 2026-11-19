@@ -31,6 +31,14 @@ describe('GET /api/bears', () => {
     expect(body.items[0]).not.toHaveProperty('intro');
   });
 
+  it('filters by name with ?q=', async () => {
+    const res = await get('/api/bears?q=panda');
+
+    expect(BearList.parse(res.json()).items.map((bear) => bear.id)).toEqual([
+      'ailuropoda-melanoleuca',
+    ]);
+  });
+
   it('is an empty list before the seed has run', async () => {
     const empty = await testApp({ bears: [] });
     const res = await empty.inject({ method: 'GET', url: '/api/bears' });

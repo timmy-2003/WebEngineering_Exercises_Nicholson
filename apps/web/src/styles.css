@@ -296,7 +296,8 @@ body {
   display: contents;
 }
 
-.retry {
+.retry,
+.load-more {
   background: #333;
   border: 0;
   color: white;

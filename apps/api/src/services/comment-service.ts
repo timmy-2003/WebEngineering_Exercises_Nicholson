@@ -1,9 +1,9 @@
 import { NotFoundError } from '../errors.js';
-import type { Repos } from '../repositories/types.js';
+import type { CommentPage, Page, Repos } from '../repositories/types.js';
 import type { Comment, NewComment } from '../schemas/comment.js';
 
 export interface CommentService {
-  list: (bearId: string) => Promise<Comment[]>;
+  list: (bearId: string, page: Page) => Promise<CommentPage>;
   get: (commentId: string) => Promise<Comment>;
   create: (bearId: string, input: NewComment) => Promise<Comment>;
   remove: (commentId: string) => Promise<void>;
@@ -20,11 +20,11 @@ export function createCommentService({
   comments,
 }: Repos): CommentService {
   return {
-    async list(bearId) {
+    async list(bearId, page) {
       if ((await bears.get(bearId)) === null) {
         throw new NotFoundError('bear', bearId);
       }
-      return await comments.listByBear(bearId);
+      return await comments.listByBear(bearId, page);
     },
 
     async get(commentId) {

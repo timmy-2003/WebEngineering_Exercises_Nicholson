@@ -81,6 +81,14 @@ export class UpstreamThrottledError extends AppError {
   }
 }
 
+export class InvalidCursorError extends AppError {
+  readonly status = HTTP_BAD_REQUEST;
+  readonly type = `${PROBLEMS}/validation`;
+  readonly title = 'Invalid request';
+  readonly publicDetail =
+    'The cursor is invalid. Start again from the first page.';
+}
+
 export class DatabaseUnavailableError extends AppError {
   readonly status = HTTP_SERVICE_UNAVAILABLE;
   readonly type = `${PROBLEMS}/database-unavailable`;

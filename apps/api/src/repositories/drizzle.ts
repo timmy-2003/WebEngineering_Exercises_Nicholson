@@ -1,11 +1,17 @@
-import { asc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, ilike, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { bears, comments } from '../db/schema.js';
 import { NotFoundError } from '../errors.js';
 import type { Comment } from '../schemas/comment.js';
+import { decodeCursor, toPage } from './cursor.js';
 import type { Repos } from './types.js';
 
 const FOREIGN_KEY_VIOLATION = '23503';
+
+// User input inside LIKE: % and _ are text, not wildcards.
+function escapeLike(text: string): string {
+  return text.replace(/[\\%_]/gv, '\\$&');
+}
 
 const bearColumns = {
   id: bears.id,
@@ -35,8 +41,16 @@ function isForeignKeyViolation(err: unknown): boolean {
 export function createDrizzleRepos(db: NodePgDatabase): Repos {
   return {
     bears: {
-      async list() {
-        return await db.select(bearColumns).from(bears).orderBy(bears.binomial);
+      async list(q) {
+        return await db
+          .select(bearColumns)
+          .from(bears)
+          .where(
+            q === undefined
+              ? undefined
+              : ilike(bears.name, `%${escapeLike(q)}%`)
+          )
+          .orderBy(bears.binomial);
       },
       async get(id) {
         const [bear] = await db
@@ -67,13 +81,22 @@ export function createDrizzleRepos(db: NodePgDatabase): Repos {
     },
 
     comments: {
-      async listByBear(bearId) {
+      async listByBear(bearId, { limit, cursor }) {
+        const after = cursor === undefined ? undefined : decodeCursor(cursor);
         const rows = await db
           .select()
           .from(comments)
-          .where(eq(comments.bearId, bearId))
-          .orderBy(asc(comments.createdAt), asc(comments.id));
-        return rows.map(toComment);
+          .where(
+            and(
+              eq(comments.bearId, bearId),
+              after === undefined
+                ? undefined
+                : sql`(${comments.createdAt}, ${comments.id}) < (${after.createdAt}::timestamptz, ${after.id}::uuid)`
+            )
+          )
+          .orderBy(desc(comments.createdAt), desc(comments.id))
+          .limit(limit + 1);
+        return toPage(rows.map(toComment), limit);
       },
       async findById(id) {
         const [row] = await db

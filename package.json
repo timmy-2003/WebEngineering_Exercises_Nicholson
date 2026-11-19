@@ -22,6 +22,8 @@
     "db:generate": "npm run db:generate -w apps/api --",
     "db:migrate": "npm run db:migrate -w apps/api",
     "db:seed": "npm run db:seed -w apps/api",
+    "db:seed:comments": "npm run db:seed:comments -w apps/api",
+    "db:explain": "npm run db:explain -w apps/api",
     "prepare": "husky"
   },
   "author": "Timothy Nicholson",

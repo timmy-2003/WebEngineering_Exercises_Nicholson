@@ -61,6 +61,16 @@ const HTTP_NOT_FOUND = 404;
                 [query]="query()"
                 (deleteRequested)="remove($event)"
               />
+              @if (nextCursor() !== null) {
+                <button
+                  type="button"
+                  class="load-more"
+                  [disabled]="loadingMore()"
+                  (click)="loadMore()"
+                >
+                  {{ loadingMore() ? 'Loading...' : 'Load more comments' }}
+                </button>
+              }
             }
           }
         </div>
@@ -82,8 +92,14 @@ export class CommentSection {
   });
 
   protected readonly comments = linkedSignal<readonly Comment[]>(
-    () => this.loaded.value() ?? []
+    () => this.loaded.value()?.items ?? []
   );
+
+  protected readonly nextCursor = linkedSignal<string | null>(
+    () => this.loaded.value()?.nextCursor ?? null
+  );
+
+  protected readonly loadingMore = signal(false);
 
   protected readonly loadError = computed(() =>
     userMessage(
@@ -98,8 +114,32 @@ export class CommentSection {
 
   protected readonly save = async (draft: CommentDraft): Promise<void> => {
     const created = await postComment(this.bearId(), draft);
-    this.comments.update((comments) => [...comments, created]);
+    this.comments.update((comments) => [created, ...comments]);
   };
+
+  protected async loadMore(): Promise<void> {
+    const cursor = this.nextCursor();
+    if (cursor === null) {
+      return;
+    }
+    this.actionError.set(null);
+    this.loadingMore.set(true);
+    try {
+      const page = await getComments(
+        this.bearId(),
+        new AbortController().signal,
+        cursor
+      );
+      this.comments.update((comments) => [...comments, ...page.items]);
+      this.nextCursor.set(page.nextCursor);
+    } catch (err) {
+      this.actionError.set(
+        userMessage(err, 'More comments could not be loaded. Please try again.')
+      );
+    } finally {
+      this.loadingMore.set(false);
+    }
+  }
 
   protected toggle(): void {
     this.visible.update((visible) => !visible);

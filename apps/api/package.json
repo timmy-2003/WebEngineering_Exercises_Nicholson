@@ -16,7 +16,9 @@
     "format:check": "prettier --check src test",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx --env-file-if-exists=../../.env src/scripts/migrate.ts",
-    "db:seed": "tsx --env-file-if-exists=../../.env src/scripts/seed.ts"
+    "db:seed": "tsx --env-file-if-exists=../../.env src/scripts/seed.ts",
+    "db:seed:comments": "tsx --env-file-if-exists=../../.env src/scripts/seed-comments.ts",
+    "db:explain": "tsx --env-file-if-exists=../../.env src/scripts/explain.ts"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",

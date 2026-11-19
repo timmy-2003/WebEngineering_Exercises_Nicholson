@@ -3,6 +3,8 @@ import { BearId } from './bear.js';
 
 const MAX_AUTHOR_LENGTH = 80;
 const MAX_TEXT_LENGTH = 2000;
+const DEFAULT_PAGE_SIZE = 20;
+const MAX_PAGE_SIZE = 100;
 
 export const NewComment = z.object({
   author: z
@@ -30,7 +32,17 @@ export type Comment = z.infer<typeof Comment>;
 
 export const CommentList = z.object({
   items: z.array(Comment),
-  nextCursor: z.null(),
+  nextCursor: z.string().nullable(),
+});
+
+export const CommentListQuery = z.object({
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(MAX_PAGE_SIZE)
+    .default(DEFAULT_PAGE_SIZE),
+  cursor: z.string().optional(),
 });
 
 export const CommentIdParams = z.object({

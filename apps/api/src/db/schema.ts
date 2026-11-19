@@ -1,5 +1,12 @@
 import { sql } from 'drizzle-orm';
-import { check, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import {
+  check,
+  index,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 export const bears = pgTable('bears', {
   id: text().primaryKey(),
@@ -30,6 +37,12 @@ export const comments = pgTable(
       .defaultNow(),
   },
   (table) => [
+    // Serves the keyset query: WHERE bear_id = ? ORDER BY created_at, id.
+    index('comments_bear_created_idx').on(
+      table.bearId,
+      table.createdAt,
+      table.id
+    ),
     check(
       'comments_author_length',
       sql`char_length(${table.author}) BETWEEN 1 AND 80`
